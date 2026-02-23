@@ -16,7 +16,7 @@ const LoginPage: React.FC = () => {
     const { role = 'student' } = useParams<{ role: string }>();
     const navigate = useNavigate();
     const { login } = useAuth();
-    const [form, setForm] = useState({ rollOrId: '', username: '', password: '' });
+    const [form, setForm] = useState({ identifier: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -25,12 +25,22 @@ const LoginPage: React.FC = () => {
         setError('');
         setLoading(true);
         try {
-            const data = await authService.login({ rollOrId: form.rollOrId, username: form.username, password: form.password });
-            if (data.role !== role) { setError(`This account is not a ${roleLabels[role]}. Please go back and select the correct role.`); setLoading(false); return; }
-            const user: User = { id: '', username: data.username, role: data.role, rollOrId: data.rollOrId };
-            login(user, data.token);
+            const data = await authService.login({ identifier: form.identifier, password: form.password });
+            // Server returns { token, user: { id, username, role, rollOrId } }
+            const { token, user: authUser } = data;
+            // Both 'admin' and 'superadmin' can log in through the admin portal
+            const allowedRoles: Record<string, string[]> = {
+                student: ['student'], faculty: ['faculty'], admin: ['admin', 'superadmin'], superadmin: ['superadmin'],
+            };
+            if (!allowedRoles[role]?.includes(authUser.role)) {
+                setError(`This account is not a ${roleLabels[role]}. Please go back and select the correct role.`);
+                setLoading(false);
+                return;
+            }
+            const user: User = { id: authUser.id || '', username: authUser.username, role: authUser.role, rollOrId: authUser.rollOrId };
+            login(user, token);
             const redirects: Record<string, string> = { student: '/student/dashboard', faculty: '/faculty/dashboard', admin: '/admin/dashboard', superadmin: '/admin/dashboard' };
-            navigate(redirects[data.role] || '/');
+            navigate(redirects[authUser.role] || '/');
         } catch (err: unknown) {
             setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Login failed. Please check your credentials.');
         } finally {
@@ -55,12 +65,8 @@ const LoginPage: React.FC = () => {
                 <form className="auth-form" onSubmit={handleSubmit}>
                     {error && <div className="error-msg">{error}</div>}
                     <div className="form-group">
-                        <label>Roll No. or ID No.</label>
-                        <input className="form-input" placeholder="e.g. CS2021001" value={form.rollOrId} onChange={e => setForm(f => ({ ...f, rollOrId: e.target.value }))} required />
-                    </div>
-                    <div className="form-group">
-                        <label>Username</label>
-                        <input className="form-input" placeholder="Your username" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+                        <label>Roll No. / Employee ID / Username</label>
+                        <input className="form-input" placeholder="e.g. CS2021001 or john_doe" value={form.identifier} onChange={e => setForm(f => ({ ...f, identifier: e.target.value }))} required />
                     </div>
                     <div className="form-group">
                         <label>Password</label>

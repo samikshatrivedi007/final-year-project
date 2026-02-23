@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Calendar, BookOpen, Settings, LogOut, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookOpen, Settings, LogOut, GraduationCap, Users, CalendarDays, BookMarked, ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {
     role: 'student' | 'faculty' | 'admin';
@@ -24,16 +24,30 @@ const navByRole: Record<string, { key: string; label: string; icon: React.Compon
     ],
     admin: [
         { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { key: 'timetable', label: 'Timetable', icon: CalendarDays },
+        { key: 'teacherSchedule', label: 'Teacher Schedule', icon: Calendar },
+        { key: 'branches', label: 'Branches (Degree)', icon: BookMarked },
+        { key: 'courses', label: 'Subjects (Courses)', icon: BookOpen },
         { key: 'students', label: 'Students', icon: GraduationCap },
-        { key: 'faculty', label: 'Faculty', icon: Calendar },
+        { key: 'faculty', label: 'Faculty', icon: Users },
         { key: 'settings', label: 'Setting', icon: Settings },
     ],
 };
 
+// Extra tabs only for superadmin
+const superAdminExtra = [
+    { key: 'admins', label: 'Admins', icon: ShieldCheck },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, onTabChange }) => {
     const navigate = useNavigate();
     const { state, logout } = useAuth();
-    const navItems = navByRole[role] || navByRole.student;
+    const isSuperAdmin = state.user?.role === 'superadmin';
+    const baseItems = navByRole[role] || navByRole.student;
+    // Insert superadmin extra tabs before Settings
+    const navItems = isSuperAdmin
+        ? [...baseItems.slice(0, -1), ...superAdminExtra, baseItems[baseItems.length - 1]]
+        : baseItems;
     const initials = (state.user?.username || 'U').substring(0, 2).toUpperCase();
 
     const handleLogout = () => {
@@ -60,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ role, activeTab, onTabChange }) => {
                     <div className="avatar">{initials}</div>
                     <div className="sidebar-user-info">
                         <div className="name">{state.user?.username || 'User'}</div>
-                        <div className="role">{role.charAt(0).toUpperCase() + role.slice(1)}</div>
+                        <div className="role">{isSuperAdmin ? 'Super Admin' : role.charAt(0).toUpperCase() + role.slice(1)}</div>
                     </div>
                 </div>
                 <button className="logout-btn" onClick={handleLogout}>

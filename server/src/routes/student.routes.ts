@@ -7,6 +7,7 @@ import {
     getStudentAssignments,
     submitAssignment,
     getStudentAttendance,
+    getStudentMarks,
 } from '../controllers/student.controller';
 
 const router = Router();
@@ -18,5 +19,6 @@ router.get('/timetable', getStudentTimetable);
 router.get('/assignments', getStudentAssignments);
 router.post('/assignments/:id/submit', submitAssignment);
 router.get('/attendance', getStudentAttendance);
+router.get('/marks', getStudentMarks);
 
 export default router;
