@@ -7,6 +7,8 @@ server/node_modules/
 client/dist/
 server/dist/
 
+
+# Dhruvs code
 # Environment files (NEVER commit these)
 .env
 server/.env
