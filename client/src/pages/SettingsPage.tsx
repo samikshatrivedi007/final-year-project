@@ -1,13 +1,23 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { settingsService } from '../services/services';
-import { Lock, Phone, Image, Trash2, LogOut, CheckCircle, AlertCircle } from 'lucide-react';
+import { authService, settingsService } from '../services/services';
+import type { UserProfile } from '../types';
+import { Lock, Phone, Image, Trash2, LogOut, CheckCircle, AlertCircle, GraduationCap } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
     const { state, logout } = useAuth();
     const navigate = useNavigate();
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Profile fetch state
+    const [profile, setProfile] = useState<UserProfile>(state.user?.profile ?? null);
+
+    useEffect(() => {
+        authService.getMe().then((data) => {
+            setProfile(data.profile ?? null);
+        }).catch(() => { /* silently fail — profile is optional display */ });
+    }, []);
 
     // Password change state
     const [pwForm, setPwForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' });
@@ -27,6 +37,7 @@ const SettingsPage: React.FC = () => {
     const [deletePassword, setDeletePassword] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState(false);
     const [deleteMsg, setDeleteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -150,6 +161,86 @@ const SettingsPage: React.FC = () => {
                         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>JPEG/PNG, max 2MB</p>
                     </div>
                 </div>
+            </div>
+
+            {/* Academic / Role Information Section (read-only) */}
+            <div className="card">
+                <div className="card-header">
+                    <span className="card-title">
+                        <GraduationCap size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                        Academic Information
+                    </span>
+                    <span style={{
+                        fontSize: '0.72rem', background: 'var(--primary)', color: 'white',
+                        padding: '0.15rem 0.55rem', borderRadius: '999px', fontWeight: 600,
+                    }}>Read Only</span>
+                </div>
+
+                {/* Shared info row helper */}
+                {(() => {
+                    const Row = ({ label, value }: { label: string; value: string | number }) => (
+                        <div style={{
+                            display: 'flex', flexDirection: 'column', gap: '0.2rem',
+                            padding: '0.75rem 1rem', background: 'var(--surface)',
+                            borderRadius: '8px', border: '1px solid var(--border)',
+                        }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                                {label}
+                            </span>
+                            <span style={{ fontWeight: 500, color: 'var(--text)', fontSize: '0.925rem' }}>
+                                {value}
+                            </span>
+                        </div>
+                    );
+
+                    const grid: React.CSSProperties = {
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                        gap: '0.75rem',
+                    };
+
+                    if (!profile) {
+                        // admin / superadmin — no extra doc, show base user info
+                        return (
+                            <div style={grid}>
+                                <Row label="Username" value={state.user?.username || '—'} />
+                                <Row label="Role" value={state.user?.role || '—'} />
+                                <Row label="ID / Roll No." value={state.user?.rollOrId || '—'} />
+                            </div>
+                        );
+                    }
+
+                    if (profile.role === 'student') {
+                        return (
+                            <div style={grid}>
+                                <Row label="Full Name" value={profile.name} />
+                                <Row label="Roll Number" value={profile.rollNo} />
+                                <Row label="Degree" value={profile.course} />
+                                <Row label="Branch" value={profile.branch} />
+                                <Row label="Semester" value={`Semester ${profile.semester}`} />
+                            </div>
+                        );
+                    }
+
+                    if (profile.role === 'faculty') {
+                        return (
+                            <div style={grid}>
+                                <Row label="Full Name" value={profile.name} />
+                                <Row label="Employee ID" value={profile.employeeId} />
+                                <Row label="Department" value={profile.department} />
+                            </div>
+                        );
+                    }
+
+                    // admin / superadmin with profile object
+                    return (
+                        <div style={grid}>
+                            <Row label="Username" value={state.user?.username || '—'} />
+                            <Row label="Role" value={state.user?.role || '—'} />
+                            <Row label="ID" value={state.user?.rollOrId || '—'} />
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Edit Profile Section */}

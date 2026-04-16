@@ -151,7 +151,34 @@ export const getMe = async (req: Request & { user?: { id: string } }, res: Respo
     try {
         const user = await User.findById(req.user?.id).select('-passwordHash');
         if (!user) { res.status(404).json({ error: 'User not found' }); return; }
-        res.json(user);
+
+        let profile: Record<string, unknown> | null = null;
+
+        if (user.role === 'student') {
+            const student = await Student.findOne({ userId: user._id }).select('name rollNo course branch semester');
+            if (student) {
+                profile = {
+                    role: 'student',
+                    name: student.name,
+                    rollNo: student.rollNo,
+                    course: student.course,
+                    branch: student.branch,
+                    semester: student.semester,
+                };
+            }
+        } else if (user.role === 'faculty') {
+            const faculty = await Faculty.findOne({ userId: user._id }).select('name employeeId department');
+            if (faculty) {
+                profile = {
+                    role: 'faculty',
+                    name: faculty.name,
+                    employeeId: faculty.employeeId,
+                    department: faculty.department,
+                };
+            }
+        }
+
+        res.json({ ...user.toObject(), profile });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch user' });
     }
