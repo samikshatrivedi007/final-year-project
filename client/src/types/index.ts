@@ -1,8 +1,15 @@
+export type UserProfile =
+    | { role: 'student'; name: string; rollNo: string; course: string; branch: string; semester: number }
+    | { role: 'faculty'; name: string; employeeId: string; department: string }
+    | { role: 'admin' | 'superadmin' }
+    | null;
+
 export interface User {
     id: string;
     username: string;
     role: 'student' | 'faculty' | 'admin' | 'superadmin';
     rollOrId: string;
+    profile?: UserProfile;
 }
 
 export interface AuthState {
