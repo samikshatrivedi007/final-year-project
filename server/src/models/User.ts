@@ -9,6 +9,7 @@ export interface IUser extends Document {
     role: UserRole;
     rollOrId: string;
     phone: string;
+    profileImage?: string;
     createdAt: Date;
     comparePassword(password: string): Promise<boolean>;
 }
@@ -20,6 +21,7 @@ const userSchema = new Schema<IUser>(
         role: { type: String, enum: ['student', 'faculty', 'admin', 'superadmin'], required: true },
         rollOrId: { type: String, required: true, unique: true, trim: true },
         phone: { type: String, required: true, trim: true },
+        profileImage: { type: String, default: '' },
     },
     { timestamps: true }
 );

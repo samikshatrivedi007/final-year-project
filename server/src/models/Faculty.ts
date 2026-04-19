@@ -4,7 +4,7 @@ export interface IFaculty extends Document {
     userId: mongoose.Types.ObjectId;
     name: string;
     employeeId: string;
-    department: string;
+    branch: string;
     courses: mongoose.Types.ObjectId[];
 }
 
@@ -13,7 +13,7 @@ const facultySchema = new Schema<IFaculty>(
         userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
         name: { type: String, required: true },
         employeeId: { type: String, required: true, unique: true },
-        department: { type: String, required: true },
+        branch: { type: String, required: true },
         courses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
     },
     { timestamps: true }

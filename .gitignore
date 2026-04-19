@@ -9,10 +9,9 @@ server/node_modules/
 client/dist/
 server/dist/
 
+
+
 # Environment files (NEVER commit these)
-.env
-server/.env
-client/.env
 .env.local
 .env.production
 
