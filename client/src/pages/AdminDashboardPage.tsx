@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { adminService } from '../services/services';
 import { useSocket } from '../services/useSocket';
 import SettingsPage from './SettingsPage';
+import AdminPlacementPage from './AdminPlacementPage';
 import { Search, Users, GraduationCap, BarChart3, UserPlus, Trash2, Pencil, Plus, X, Calendar, BookOpen, ShieldCheck } from 'lucide-react';
 
 const COURSES = ['BTech', 'MTech', 'BPharma'];
@@ -631,6 +632,7 @@ const AdminDashboardPage: React.FC = () => {
                 {activeTab === 'students' && renderStudents()}
                 {activeTab === 'faculty' && renderFaculty()}
                 {activeTab === 'admins' && isSuperAdmin && renderAdmins()}
+                {activeTab === 'placement' && <AdminPlacementPage />}
                 {activeTab === 'settings' && <SettingsPage />}
             </main>
 

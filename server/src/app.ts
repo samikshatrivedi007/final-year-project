@@ -10,6 +10,8 @@ import authRoutes from './routes/auth.routes';
 import studentRoutes from './routes/student.routes';
 import facultyRoutes from './routes/faculty.routes';
 import adminRoutes from './routes/admin.routes';
+import attendanceRoutes from './routes/attendance.routes';
+import opportunityRoutes from './routes/opportunity.routes';
 import { authenticate } from './middleware/authenticate';
 import { upload } from './middleware/upload.middleware';
 import { initSocket } from './socket';
@@ -61,6 +63,8 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/faculty', facultyRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api', opportunityRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

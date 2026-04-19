@@ -1,0 +1,218 @@
+{
+    "nodes": [
+        {
+            "id": "app_entry",
+            "label": "Backend Application (app.ts)",
+            "file_type": "code",
+            "source_file": "server/src/app.ts"
+        },
+        {
+            "id": "route_attendance",
+            "label": "Attendance Routes",
+            "file_type": "code",
+            "source_file": "server/src/routes/attendance.routes.ts"
+        },
+        {
+            "id": "route_opportunity",
+            "label": "Opportunity Routes",
+            "file_type": "code",
+            "source_file": "server/src/routes/opportunity.routes.ts"
+        },
+        {
+            "id": "route_student",
+            "label": "Student Routes",
+            "file_type": "code",
+            "source_file": "server/src/routes/student.routes.ts"
+        },
+        {
+            "id": "ctrl_attendance",
+            "label": "getStudentAttendanceSummary()",
+            "file_type": "code",
+            "source_file": "server/src/controllers/attendance.controller.ts"
+        },
+        {
+            "id": "ctrl_opportunity",
+            "label": "getOpportunities()",
+            "file_type": "code",
+            "source_file": "server/src/controllers/opportunity.controller.ts"
+        },
+        {
+            "id": "ctrl_application",
+            "label": "applyOpportunity()",
+            "file_type": "code",
+            "source_file": "server/src/controllers/opportunity.controller.ts"
+        },
+        {
+            "id": "model_attendance",
+            "label": "AttendanceSummary Schema",
+            "file_type": "code",
+            "source_file": "server/src/models/AttendanceSummary.ts"
+        },
+        {
+            "id": "model_opportunity",
+            "label": "Opportunity Schema",
+            "file_type": "code",
+            "source_file": "server/src/models/Opportunity.ts"
+        },
+        {
+            "id": "model_application",
+            "label": "Application Schema",
+            "file_type": "code",
+            "source_file": "server/src/models/Application.ts"
+        },
+        {
+            "id": "ui_student_dashboard",
+            "label": "StudentDashboardPage",
+            "file_type": "code",
+            "source_file": "client/src/pages/StudentDashboardPage.tsx"
+        },
+        {
+            "id": "ui_attendance",
+            "label": "AttendancePage",
+            "file_type": "code",
+            "source_file": "client/src/pages/AttendancePage.tsx"
+        },
+        {
+            "id": "ui_placement",
+            "label": "PlacementPage",
+            "file_type": "code",
+            "source_file": "client/src/pages/PlacementPage.tsx"
+        },
+        {
+            "id": "ui_sidebar",
+            "label": "Sidebar (Navigation)",
+            "file_type": "code",
+            "source_file": "client/src/components/shared/Sidebar.tsx"
+        },
+        {
+            "id": "svc_student",
+            "label": "studentService",
+            "file_type": "code",
+            "source_file": "client/src/services/services.ts"
+        }
+    ],
+    "edges": [
+        {
+            "source": "route_attendance",
+            "target": "app_entry",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "route_opportunity",
+            "target": "app_entry",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "route_student",
+            "target": "app_entry",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ctrl_attendance",
+            "target": "route_attendance",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ctrl_opportunity",
+            "target": "route_opportunity",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ctrl_application",
+            "target": "route_opportunity",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "model_attendance",
+            "target": "ctrl_attendance",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "model_opportunity",
+            "target": "ctrl_opportunity",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "model_application",
+            "target": "ctrl_application",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "model_opportunity",
+            "target": "model_application",
+            "relation": "conceptually_related_to",
+            "confidence": "INFERRED",
+            "confidence_score": 0.9
+        },
+        {
+            "source": "ui_attendance",
+            "target": "ui_student_dashboard",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ui_placement",
+            "target": "ui_student_dashboard",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ui_sidebar",
+            "target": "ui_student_dashboard",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "svc_student",
+            "target": "ui_attendance",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "svc_student",
+            "target": "ui_placement",
+            "relation": "imported_by",
+            "confidence": "EXTRACTED",
+            "confidence_score": 1.0
+        },
+        {
+            "source": "ctrl_attendance",
+            "target": "svc_student",
+            "relation": "conceptually_related_to",
+            "confidence": "INFERRED",
+            "confidence_score": 0.8
+        },
+        {
+            "source": "ctrl_opportunity",
+            "target": "svc_student",
+            "relation": "conceptually_related_to",
+            "confidence": "INFERRED",
+            "confidence_score": 0.8
+        }
+    ],
+    "hyperedges": [],
+    "input_tokens": 0,
+    "output_tokens": 0
+}

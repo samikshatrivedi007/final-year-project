@@ -1,0 +1,283 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "Backend Application (app.ts)",
+      "file_type": "code",
+      "source_file": "server/src/app.ts",
+      "id": "app_entry",
+      "community": 0,
+      "norm_label": "backend application (app.ts)"
+    },
+    {
+      "label": "Attendance Routes",
+      "file_type": "code",
+      "source_file": "server/src/routes/attendance.routes.ts",
+      "id": "route_attendance",
+      "community": 0,
+      "norm_label": "attendance routes"
+    },
+    {
+      "label": "Opportunity Routes",
+      "file_type": "code",
+      "source_file": "server/src/routes/opportunity.routes.ts",
+      "id": "route_opportunity",
+      "community": 1,
+      "norm_label": "opportunity routes"
+    },
+    {
+      "label": "Student Routes",
+      "file_type": "code",
+      "source_file": "server/src/routes/student.routes.ts",
+      "id": "route_student",
+      "community": 0,
+      "norm_label": "student routes"
+    },
+    {
+      "label": "getStudentAttendanceSummary()",
+      "file_type": "code",
+      "source_file": "server/src/controllers/attendance.controller.ts",
+      "id": "ctrl_attendance",
+      "community": 0,
+      "norm_label": "getstudentattendancesummary()"
+    },
+    {
+      "label": "getOpportunities()",
+      "file_type": "code",
+      "source_file": "server/src/controllers/opportunity.controller.ts",
+      "id": "ctrl_opportunity",
+      "community": 1,
+      "norm_label": "getopportunities()"
+    },
+    {
+      "label": "applyOpportunity()",
+      "file_type": "code",
+      "source_file": "server/src/controllers/opportunity.controller.ts",
+      "id": "ctrl_application",
+      "community": 1,
+      "norm_label": "applyopportunity()"
+    },
+    {
+      "label": "AttendanceSummary Schema",
+      "file_type": "code",
+      "source_file": "server/src/models/AttendanceSummary.ts",
+      "id": "model_attendance",
+      "community": 0,
+      "norm_label": "attendancesummary schema"
+    },
+    {
+      "label": "Opportunity Schema",
+      "file_type": "code",
+      "source_file": "server/src/models/Opportunity.ts",
+      "id": "model_opportunity",
+      "community": 1,
+      "norm_label": "opportunity schema"
+    },
+    {
+      "label": "Application Schema",
+      "file_type": "code",
+      "source_file": "server/src/models/Application.ts",
+      "id": "model_application",
+      "community": 1,
+      "norm_label": "application schema"
+    },
+    {
+      "label": "StudentDashboardPage",
+      "file_type": "code",
+      "source_file": "client/src/pages/StudentDashboardPage.tsx",
+      "id": "ui_student_dashboard",
+      "community": 2,
+      "norm_label": "studentdashboardpage"
+    },
+    {
+      "label": "AttendancePage",
+      "file_type": "code",
+      "source_file": "client/src/pages/AttendancePage.tsx",
+      "id": "ui_attendance",
+      "community": 2,
+      "norm_label": "attendancepage"
+    },
+    {
+      "label": "PlacementPage",
+      "file_type": "code",
+      "source_file": "client/src/pages/PlacementPage.tsx",
+      "id": "ui_placement",
+      "community": 2,
+      "norm_label": "placementpage"
+    },
+    {
+      "label": "Sidebar (Navigation)",
+      "file_type": "code",
+      "source_file": "client/src/components/shared/Sidebar.tsx",
+      "id": "ui_sidebar",
+      "community": 2,
+      "norm_label": "sidebar (navigation)"
+    },
+    {
+      "label": "studentService",
+      "file_type": "code",
+      "source_file": "client/src/services/services.ts",
+      "id": "svc_student",
+      "community": 2,
+      "norm_label": "studentservice"
+    }
+  ],
+  "links": [
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "route_attendance",
+      "_tgt": "app_entry",
+      "source": "app_entry",
+      "target": "route_attendance"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "route_opportunity",
+      "_tgt": "app_entry",
+      "source": "app_entry",
+      "target": "route_opportunity"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "route_student",
+      "_tgt": "app_entry",
+      "source": "app_entry",
+      "target": "route_student"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ctrl_attendance",
+      "_tgt": "route_attendance",
+      "source": "route_attendance",
+      "target": "ctrl_attendance"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ctrl_opportunity",
+      "_tgt": "route_opportunity",
+      "source": "route_opportunity",
+      "target": "ctrl_opportunity"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ctrl_application",
+      "_tgt": "route_opportunity",
+      "source": "route_opportunity",
+      "target": "ctrl_application"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "model_attendance",
+      "_tgt": "ctrl_attendance",
+      "source": "ctrl_attendance",
+      "target": "model_attendance"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "_src": "ctrl_attendance",
+      "_tgt": "svc_student",
+      "source": "ctrl_attendance",
+      "target": "svc_student"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "model_opportunity",
+      "_tgt": "ctrl_opportunity",
+      "source": "ctrl_opportunity",
+      "target": "model_opportunity"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "_src": "ctrl_opportunity",
+      "_tgt": "svc_student",
+      "source": "ctrl_opportunity",
+      "target": "svc_student"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "model_application",
+      "_tgt": "ctrl_application",
+      "source": "ctrl_application",
+      "target": "model_application"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "_src": "model_opportunity",
+      "_tgt": "model_application",
+      "source": "model_opportunity",
+      "target": "model_application"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ui_attendance",
+      "_tgt": "ui_student_dashboard",
+      "source": "ui_student_dashboard",
+      "target": "ui_attendance"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ui_placement",
+      "_tgt": "ui_student_dashboard",
+      "source": "ui_student_dashboard",
+      "target": "ui_placement"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "ui_sidebar",
+      "_tgt": "ui_student_dashboard",
+      "source": "ui_student_dashboard",
+      "target": "ui_sidebar"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "svc_student",
+      "_tgt": "ui_attendance",
+      "source": "ui_attendance",
+      "target": "svc_student"
+    },
+    {
+      "relation": "imported_by",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "_src": "svc_student",
+      "_tgt": "ui_placement",
+      "source": "ui_placement",
+      "target": "svc_student"
+    }
+  ],
+  "hyperedges": []
+}

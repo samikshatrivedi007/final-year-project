@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LayoutDashboard, Calendar, BookOpen, Settings, LogOut, GraduationCap, Users, CalendarDays, BookMarked, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Calendar, BookOpen, Settings, LogOut, GraduationCap, Users, CalendarDays, BookMarked, ShieldCheck, ClipboardList, Briefcase } from 'lucide-react';
 
 interface SidebarProps {
     role: 'student' | 'faculty' | 'admin';
@@ -14,6 +14,8 @@ const navByRole: Record<string, { key: string; label: string; icon: React.Compon
         { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { key: 'timetable', label: 'Time table', icon: Calendar },
         { key: 'assignments', label: 'Assignments', icon: BookOpen },
+        { key: 'attendance', label: 'Attendance', icon: ClipboardList },
+        { key: 'placement', label: 'Training & Placement', icon: Briefcase },
         { key: 'settings', label: 'Setting', icon: Settings },
     ],
     faculty: [
@@ -30,6 +32,7 @@ const navByRole: Record<string, { key: string; label: string; icon: React.Compon
         { key: 'courses', label: 'Subjects (Courses)', icon: BookOpen },
         { key: 'students', label: 'Students', icon: GraduationCap },
         { key: 'faculty', label: 'Faculty', icon: Users },
+        { key: 'placement', label: 'Training & Placement', icon: Briefcase },
         { key: 'settings', label: 'Setting', icon: Settings },
     ],
 };

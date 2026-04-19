@@ -48,6 +48,10 @@ export const studentService = {
         (await api.post(`/student/assignments/${id}/submit`, { fileUrl })).data,
     getAttendance: async () => (await api.get('/student/attendance')).data,
     getMarks: async () => (await api.get('/student/marks')).data,
+    getAttendanceSummary: async () => (await api.get('/attendance/student/me')).data,
+    getOpportunities: async () => (await api.get('/opportunities')).data,
+    applyOpportunity: async (opportunityId: string) => (await api.post('/apply', { opportunityId })).data,
+    getApplications: async () => (await api.get('/applications/student/me')).data,
 };
 
 export const facultyService = {
@@ -108,5 +112,9 @@ export const adminService = {
     deleteBranch: async (id: string) => (await api.delete(`/admin/branches/${id}`)).data,
     // Superadmin: manage college admins
     getAdmins: async () => (await api.get('/admin/admins')).data,
-    deleteAdminUser: async (id: string) => (await api.delete(`/admin/admins/${id}`)).data,
+    deleteAdminUser: async (id: string) => (await api.delete(`/admin/users/admins/${id}`)).data,
+    getOpportunities: async () => (await api.get('/opportunities')).data,
+    createOpportunity: async (data: any) => (await api.post('/opportunities', data)).data,
+    getApplications: async () => (await api.get('/applications')).data,
+    updateApplicationStatus: async (id: string, status: string) => (await api.patch(`/applications/${id}`, { status })).data,
 };

@@ -3,6 +3,8 @@ import Sidebar from '../components/shared/Sidebar';
 import { studentService } from '../services/services';
 import { useSocket } from '../services/useSocket';
 import SettingsPage from './SettingsPage';
+import AttendancePage from './AttendancePage';
+import PlacementPage from './PlacementPage';
 import { Search, Upload, X, CheckCircle } from 'lucide-react';
 
 const SERVER_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
@@ -384,6 +386,8 @@ const StudentDashboardPage: React.FC = () => {
                         {activeTab === 'dashboard' && renderDashboard()}
                         {activeTab === 'timetable' && renderTimetable()}
                         {activeTab === 'assignments' && renderAssignments()}
+                        {activeTab === 'attendance' && <AttendancePage />}
+                        {activeTab === 'placement' && <PlacementPage />}
                         {activeTab === 'settings' && <SettingsPage />}
                     </>
                 )}

@@ -1,0 +1,166 @@
+{
+  "communities": {
+    "0": [
+      "app_entry",
+      "ctrl_attendance",
+      "model_attendance",
+      "route_attendance",
+      "route_student"
+    ],
+    "1": [
+      "ctrl_application",
+      "ctrl_opportunity",
+      "model_application",
+      "model_opportunity",
+      "route_opportunity"
+    ],
+    "2": [
+      "svc_student",
+      "ui_attendance",
+      "ui_placement",
+      "ui_sidebar",
+      "ui_student_dashboard"
+    ]
+  },
+  "cohesion": {
+    "0": 0.4,
+    "1": 0.5,
+    "2": 0.5
+  },
+  "gods": [
+    {
+      "id": "svc_student",
+      "label": "studentService",
+      "degree": 4
+    },
+    {
+      "id": "app_entry",
+      "label": "Backend Application (app.ts)",
+      "degree": 3
+    },
+    {
+      "id": "route_opportunity",
+      "label": "Opportunity Routes",
+      "degree": 3
+    },
+    {
+      "id": "ctrl_attendance",
+      "label": "getStudentAttendanceSummary()",
+      "degree": 3
+    },
+    {
+      "id": "ctrl_opportunity",
+      "label": "getOpportunities()",
+      "degree": 3
+    },
+    {
+      "id": "ui_student_dashboard",
+      "label": "StudentDashboardPage",
+      "degree": 3
+    },
+    {
+      "id": "route_attendance",
+      "label": "Attendance Routes",
+      "degree": 2
+    },
+    {
+      "id": "ctrl_application",
+      "label": "applyOpportunity()",
+      "degree": 2
+    },
+    {
+      "id": "model_opportunity",
+      "label": "Opportunity Schema",
+      "degree": 2
+    },
+    {
+      "id": "model_application",
+      "label": "Application Schema",
+      "degree": 2
+    }
+  ],
+  "surprises": [
+    {
+      "source": "getStudentAttendanceSummary()",
+      "target": "studentService",
+      "source_files": [
+        "server/src/controllers/attendance.controller.ts",
+        "client/src/services/services.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "getOpportunities()",
+      "target": "studentService",
+      "source_files": [
+        "server/src/controllers/opportunity.controller.ts",
+        "client/src/services/services.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Opportunity Routes",
+      "target": "Backend Application (app.ts)",
+      "source_files": [
+        "server/src/routes/opportunity.routes.ts",
+        "server/src/app.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "imported_by",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "Opportunity Schema",
+      "target": "Application Schema",
+      "source_files": [
+        "server/src/models/Opportunity.ts",
+        "server/src/models/Application.ts"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source"
+    },
+    {
+      "source": "Attendance Routes",
+      "target": "Backend Application (app.ts)",
+      "source_files": [
+        "server/src/routes/attendance.routes.ts",
+        "server/src/app.ts"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "imported_by",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `studentService` connect `Community 2` to `Community 0`, `Community 1`?",
+      "why": "High betweenness centrality (0.544) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `getOpportunities()` connect `Community 1` to `Community 2`?",
+      "why": "High betweenness centrality (0.385) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Opportunity Routes` connect `Community 1` to `Community 0`?",
+      "why": "High betweenness centrality (0.264) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `studentService` (e.g. with `getStudentAttendanceSummary()` and `getOpportunities()`) actually correct?",
+      "why": "`studentService` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Student Routes`, `AttendanceSummary Schema`, `Sidebar (Navigation)` to the rest of the system?",
+      "why": "3 weakly-connected nodes found - possible documentation gaps or missing edges."
+    }
+  ]
+}
