@@ -11,7 +11,7 @@ const COURSES = ['BTech', 'MTech', 'BPharma'];
 
 export const register = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { username, password, role, rollOrId, phone, name, semester, course, branch, department } = req.body;
+        const { username, password, role, rollOrId, phone, name, semester, course, branch } = req.body;
 
         // ── Required field validation ──────────────────────────────────────────
         if (!username || !password || !role || !rollOrId) {
@@ -52,10 +52,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 return;
             }
             // Validate branch exists under the selected course
-            const branchDoc = await Branch.findOne({ name: branch, course });
-            if (!branchDoc) {
+            const branchDoc = await Branch.findById(branch);
+            if (!branchDoc || branchDoc.course !== course) {
                 await User.findByIdAndDelete(user._id);
-                res.status(400).json({ error: `Branch "${branch}" does not exist under ${course}. Please contact your admin.` });
+                res.status(400).json({ error: `Selected branch is invalid or does not belong to course ${course}. Please contact your admin.` });
                 return;
             }
             if (!name) {
@@ -79,7 +79,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 studentId: studentDoc._id,
                 rollNo: rollOrId,
                 course,
-                branch,
+                branch: branchDoc.name,
                 totalMarks: 0,
                 reviewedCount: 0,
                 averageMarks: 0,
@@ -95,7 +95,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 userId: user._id,
                 name,
                 employeeId: rollOrId,
-                department: department || '',
+                branch: branch || '',
                 courses: [],
             });
         }
@@ -155,25 +155,25 @@ export const getMe = async (req: Request & { user?: { id: string } }, res: Respo
         let profile: Record<string, unknown> | null = null;
 
         if (user.role === 'student') {
-            const student = await Student.findOne({ userId: user._id }).select('name rollNo course branch semester');
+            const student = await Student.findOne({ userId: user._id }).populate('branch', 'name');
             if (student) {
                 profile = {
                     role: 'student',
                     name: student.name,
                     rollNo: student.rollNo,
                     course: student.course,
-                    branch: student.branch,
+                    branch: typeof student.branch === 'object' && student.branch !== null ? (student.branch as any).name : String(student.branch),
                     semester: student.semester,
                 };
             }
         } else if (user.role === 'faculty') {
-            const faculty = await Faculty.findOne({ userId: user._id }).select('name employeeId department');
+            const faculty = await Faculty.findOne({ userId: user._id }).select('name employeeId branch');
             if (faculty) {
                 profile = {
                     role: 'faculty',
                     name: faculty.name,
                     employeeId: faculty.employeeId,
-                    department: faculty.department,
+                    branch: faculty.branch,
                 };
             }
         }

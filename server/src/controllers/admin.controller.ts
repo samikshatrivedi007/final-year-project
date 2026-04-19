@@ -28,7 +28,7 @@ export const searchStudent = async (req: AuthRequest, res: Response): Promise<vo
         });
         if (!user) { res.status(404).json({ error: 'No student found' }); return; }
 
-        const student = await Student.findOne({ userId: user._id });
+        const student = await Student.findOne({ userId: user._id }).populate('branch', 'name');
         if (!student) { res.status(404).json({ error: 'Student profile not found' }); return; }
 
         // Attendance stats
@@ -56,7 +56,7 @@ export const searchStudent = async (req: AuthRequest, res: Response): Promise<vo
 
         res.json({
             user: { username: user.username, rollOrId: user.rollOrId, phone: user.phone },
-            student: { name: student.name, rollNo: student.rollNo, course: student.course, branch: student.branch, semester: student.semester },
+            student: { name: student.name, rollNo: student.rollNo, course: student.course, branch: typeof student.branch === 'object' && student.branch !== null ? (student.branch as any).name : String(student.branch), semester: student.semester },
             attendanceRate,
             totalClasses: attendance.length,
             marks: marks || { totalMarks: 0, averageMarks: 0, reviewedCount: 0 },
@@ -92,8 +92,20 @@ export const updateStudentMarks = async (req: AuthRequest, res: Response): Promi
     try {
         const { studentId } = req.params;
         const { totalMarks, averageMarks, entries } = req.body;
-        const marks = await Marks.findOne({ studentId });
-        if (!marks) { res.status(404).json({ error: 'Marks record not found' }); return; }
+        let marks = await Marks.findOne({ studentId });
+        if (!marks) {
+            const student = await Student.findById(studentId);
+            if (!student) { res.status(404).json({ error: 'Student not found' }); return; }
+            marks = new Marks({
+                studentId,
+                rollNo: student.rollNo,
+                course: student.course,
+                branch: student.branch,
+                totalMarks: 0,
+                averageMarks: 0,
+                entries: []
+            });
+        }
         if (totalMarks !== undefined) marks.totalMarks = totalMarks;
         if (averageMarks !== undefined) marks.averageMarks = averageMarks;
         if (entries !== undefined) {
@@ -171,7 +183,7 @@ export const getAdminDashboard = async (_req: AuthRequest, res: Response): Promi
 
 export const getStudents = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const students = await Student.find().populate('userId', 'username rollOrId phone').populate('courses', 'name');
+        const students = await Student.find().populate('userId', 'username rollOrId phone').populate('courses', 'name').populate('branch', 'name');
         res.json(students);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch students' });
@@ -181,9 +193,16 @@ export const getStudents = async (_req: AuthRequest, res: Response): Promise<voi
 export const createStudent = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         const { username, password, rollOrId, phone, name, semester, course, branch } = req.body;
+
+        const branchDoc = await Branch.findById(branch);
+        if (!branchDoc) {
+            res.status(400).json({ error: 'Invalid branch ID' });
+            return;
+        }
+
         const user = await User.create({ username, passwordHash: password, role: 'student', rollOrId, phone });
         const student = await Student.create({ userId: user._id, name, rollNo: rollOrId, course, branch, semester: semester || 1, courses: [] });
-        await Marks.create({ studentId: student._id, rollNo: rollOrId, course, branch });
+        await Marks.create({ studentId: student._id, rollNo: rollOrId, course, branch: branchDoc.name });
         res.status(201).json({ user: { username, rollOrId }, student });
     } catch (error) {
         res.status(500).json({ error: 'Failed to create student', details: (error as Error).message });
@@ -225,9 +244,9 @@ export const getFacultyList = async (_req: AuthRequest, res: Response): Promise<
 
 export const createFaculty = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const { username, password, rollOrId, phone, name, department } = req.body;
+        const { username, password, rollOrId, phone, name, branch } = req.body;
         const user = await User.create({ username, passwordHash: password, role: 'faculty', rollOrId, phone });
-        const faculty = await Faculty.create({ userId: user._id, name, employeeId: rollOrId, department, courses: [] });
+        const faculty = await Faculty.create({ userId: user._id, name, employeeId: rollOrId, branch, courses: [] });
         res.status(201).json({ user: { username, rollOrId }, faculty });
     } catch (error) {
         res.status(500).json({ error: 'Failed to create faculty', details: (error as Error).message });

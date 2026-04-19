@@ -7,7 +7,7 @@ export const authService = {
     },
     register: async (data: {
         username: string; rollOrId: string; phone?: string; password: string;
-        role: string; course?: string; branch?: string; name?: string; semester?: number; department?: string;
+        role: string; course?: string; branch?: string; name?: string; semester?: number;
     }) => {
         const res = await api.post('/auth/register', data);
         return res.data;
@@ -112,7 +112,7 @@ export const adminService = {
     deleteBranch: async (id: string) => (await api.delete(`/admin/branches/${id}`)).data,
     // Superadmin: manage college admins
     getAdmins: async () => (await api.get('/admin/admins')).data,
-    deleteAdminUser: async (id: string) => (await api.delete(`/admin/users/admins/${id}`)).data,
+    deleteAdminUser: async (id: string) => (await api.delete(`/admin/admins/${id}`)).data,
     getOpportunities: async () => (await api.get('/opportunities')).data,
     createOpportunity: async (data: any) => (await api.post('/opportunities', data)).data,
     getApplications: async () => (await api.get('/applications')).data,

@@ -29,13 +29,12 @@ const PlacementPage: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            if (viewMode === 'opportunities') {
-                const ops = await studentService.getOpportunities();
-                setOpportunities(ops);
-            } else {
-                const apps = await studentService.getApplications();
-                setApplications(apps);
-            }
+            const [ops, apps] = await Promise.all([
+                studentService.getOpportunities(),
+                studentService.getApplications()
+            ]);
+            setOpportunities(ops);
+            setApplications(apps);
         } catch (error) {
             console.error("Failed to fetch data", error);
         } finally {
@@ -45,17 +44,38 @@ const PlacementPage: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-    }, [viewMode]);
+    }, []);
 
     const handleApply = async (opportunityId: string) => {
+        const targetOp = opportunities.find(o => o._id === opportunityId);
+        if (!targetOp) return;
+
+        // Optimistic Update
+        const optimisticApp: Application = {
+            _id: 'temp-' + Date.now(),
+            opportunityId: targetOp,
+            status: 'Applied',
+            appliedAt: new Date().toISOString()
+        };
+
+        // This instantly hides it from opportunities and moves it to applications
+        setApplications(prev => [optimisticApp, ...prev]);
+
         try {
             await studentService.applyOpportunity(opportunityId);
-            alert('Applied successfully!');
-            fetchData();
+            // Re-fetch backend state silently
+            const apps = await studentService.getApplications();
+            setApplications(apps);
         } catch (error: any) {
+            // Revert on failure
+            setApplications(prev => prev.filter(app => app._id !== optimisticApp._id));
             alert(error.response?.data?.error || 'Failed to apply');
         }
     };
+
+    const unappliedOpportunities = opportunities.filter(
+        op => !applications.some(app => app.opportunityId?._id === op._id)
+    );
 
     if (loading) return <div className="loading"><div className="spinner" /><span>Loading...</span></div>;
 
@@ -83,10 +103,10 @@ const PlacementPage: React.FC = () => {
 
             {viewMode === 'opportunities' ? (
                 <div className="dashboard-grid">
-                    {opportunities.map(op => (
+                    {unappliedOpportunities.map(op => (
                         <OpportunityCard key={op._id} opportunity={op} onApply={handleApply} />
                     ))}
-                    {opportunities.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No upcoming opportunities right now.</p>}
+                    {unappliedOpportunities.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No upcoming opportunities right now.</p>}
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

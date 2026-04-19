@@ -20,7 +20,7 @@ interface AdminDashData {
 interface TimetableEntry {
     _id: string;
     courseId: { _id: string; name: string; code: string };
-    facultyId: { _id: string; name: string; department: string };
+    facultyId: { _id: string; name: string; branch: string };
     branch: string;
     dayOfWeek: string;
     startTime: string;
@@ -39,7 +39,7 @@ interface Course {
 }
 
 interface TeacherScheduleGroup {
-    faculty: { name: string; department: string };
+    faculty: { name: string; branch: string };
     entries: TimetableEntry[];
 }
 
@@ -53,6 +53,35 @@ const AdminDashboardPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [data, setData] = useState<AdminDashData | null>(null);
     const [search, setSearch] = useState('');
+
+    const scrollingRef = React.useRef(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (scrollingRef.current) return; // skip during programmatic scroll
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setActiveTab(entry.target.id);
+                }
+            });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+
+        const sectionIds = ['dashboard', 'timetable', 'teacherSchedule', 'branches', 'courses', 'students', 'faculty', 'admins', 'placement', 'settings'];
+        sectionIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [isSuperAdmin]);
+
+    const handleTabChange = (key: string) => {
+        setActiveTab(key);
+        scrollingRef.current = true;
+        document.getElementById(key)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Re-enable observer after scroll settles
+        setTimeout(() => { scrollingRef.current = false; }, 800);
+    };
 
     // Timetable state
     const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
@@ -75,7 +104,16 @@ const AdminDashboardPage: React.FC = () => {
 
     // Students/Faculty list
     const [students, setStudents] = useState<{ _id: string; name: string; rollNo: string; branch: string; semester: number; userId?: { username: string } }[]>([]);
-    const [faculty, setFaculty] = useState<{ _id: string; name: string; employeeId: string; department: string; userId?: { username: string } }[]>([]);
+    const [showStudentForm, setShowStudentForm] = useState(false);
+    const [studentForm, setStudentForm] = useState({ username: '', password: '', rollOrId: '', phone: '', name: '', semester: 1, course: '', branch: '' });
+    const [studentMsg, setStudentMsg] = useState('');
+    const [studentLoading, setStudentLoading] = useState(false);
+
+    const [faculty, setFaculty] = useState<{ _id: string; name: string; employeeId: string; branch: string; userId?: { username: string } }[]>([]);
+    const [showFacultyForm, setShowFacultyForm] = useState(false);
+    const [facultyForm, setFacultyForm] = useState({ username: '', password: '', rollOrId: '', phone: '', name: '', branch: '' });
+    const [facultyMsg, setFacultyMsg] = useState('');
+    const [facultyLoading, setFacultyLoading] = useState(false);
 
     // Admins list (superadmin only)
     const [admins, setAdmins] = useState<{ _id: string; username: string; rollOrId: string; phone: string; createdAt: string }[]>([]);
@@ -88,6 +126,7 @@ const AdminDashboardPage: React.FC = () => {
     const [branchLoading, setBranchLoading] = useState(false);
     // Branches available for currently selected course in timetable/course forms
     const [ttBranchOptions, setTtBranchOptions] = useState<BranchDoc[]>([]);
+    const [studentBranchOptions, setStudentBranchOptions] = useState<BranchDoc[]>([]);
 
     // Student search
     const [studentSearchQuery, setStudentSearchQuery] = useState('');
@@ -109,53 +148,60 @@ const AdminDashboardPage: React.FC = () => {
     const [bulkMarksForm, setBulkMarksForm] = useState({ totalMarks: '', averageMarks: '' });
     const [bulkMarksMsg, setBulkMarksMsg] = useState('');
 
+    const timetableBranchRef = React.useRef(timetableBranch);
+    timetableBranchRef.current = timetableBranch;
+
     const fetchDashboard = useCallback(async () => {
         try { const d = await adminService.getDashboard(); setData(d); } catch { /* ignore */ }
     }, []);
-    const fetchTimetable = async () => {
-        try { const d = await adminService.getTimetable(timetableBranch); setTimetable(d); } catch { /* ignore */ }
-    };
-    const fetchTeacherSchedule = async () => {
+    const fetchTimetable = useCallback(async () => {
+        try { const d = await adminService.getTimetable(timetableBranchRef.current); setTimetable(d); } catch { /* ignore */ }
+    }, []);
+    const fetchTeacherSchedule = useCallback(async () => {
         try { const d = await adminService.getTeacherSchedule(); setTeacherSchedule(d); } catch { /* ignore */ }
-    };
-    const fetchCourses = async () => {
+    }, []);
+    const fetchCourses = useCallback(async () => {
         try { const d = await adminService.getCourses(); setCourses(d); } catch { /* ignore */ }
-    };
-    const fetchStudents = async () => {
+    }, []);
+    const fetchStudents = useCallback(async () => {
         try { const d = await adminService.getStudents(); setStudents(d); } catch { /* ignore */ }
-    };
-    const fetchFaculty = async () => {
+    }, []);
+    const fetchFaculty = useCallback(async () => {
         try { const d = await adminService.getFaculty(); setFaculty(d); } catch { /* ignore */ }
-    };
-    const fetchAdmins = async () => {
+    }, []);
+    const fetchAdmins = useCallback(async () => {
         try { const d = await adminService.getAdmins(); setAdmins(d); } catch { /* ignore */ }
-    };
-
+    }, []);
     const fetchBranches = useCallback(async () => {
         try { const d = await adminService.getBranches(); setBranchDocs(d); } catch { /* ignore */ }
     }, []);
-
-    useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
     // Real-time: subscribe to admin room
     useSocket('admin', {
         'marks:updated': () => fetchDashboard(),
         'attendance:updated': () => fetchDashboard(),
         'timetable:updated': () => {
-            if (activeTab === 'timetable') fetchTimetable();
-            if (activeTab === 'teacherSchedule') fetchTeacherSchedule();
+            fetchTimetable();
+            fetchTeacherSchedule();
         },
     });
 
+    // Load ALL data on mount since all sections render simultaneously (scroll layout)
     useEffect(() => {
-        if (activeTab === 'timetable') { fetchTimetable(); fetchCourses(); fetchFaculty(); fetchBranches(); }
-        if (activeTab === 'teacherSchedule') fetchTeacherSchedule();
-        if (activeTab === 'courses') { fetchCourses(); fetchFaculty(); fetchBranches(); }
-        if (activeTab === 'branches') fetchBranches();
-        if (activeTab === 'students') { fetchStudents(); }
-        if (activeTab === 'faculty') fetchFaculty();
-        if (activeTab === 'admins') fetchAdmins();
-    }, [activeTab, timetableBranch, fetchDashboard, fetchBranches]);
+        fetchDashboard();
+        fetchTimetable();
+        fetchTeacherSchedule();
+        fetchCourses();
+        fetchBranches();
+        fetchStudents();
+        fetchFaculty();
+        if (isSuperAdmin) fetchAdmins();
+    }, [fetchDashboard, fetchTimetable, fetchTeacherSchedule, fetchCourses, fetchBranches, fetchStudents, fetchFaculty, fetchAdmins, isSuperAdmin]);
+
+    // Refetch timetable when branch filter changes
+    useEffect(() => {
+        fetchTimetable();
+    }, [timetableBranch, fetchTimetable]);
 
     // Student search handler
     const handleStudentSearch = async (e: React.FormEvent) => {
@@ -249,13 +295,41 @@ const AdminDashboardPage: React.FC = () => {
     };
 
     const handleDeleteFaculty = async (id: string) => {
-        if (!confirm('Delete this faculty member? (Superadmin only)')) return;
+        if (!confirm('Delete this faculty member?')) return;
         try { await adminService.deleteFaculty(id); await fetchFaculty(); await fetchDashboard(); } catch { /* ignore */ }
     };
 
     const handleDeleteAdmin = async (id: string) => {
         if (!confirm('Delete this college admin?')) return;
         try { await adminService.deleteAdminUser(id); await fetchAdmins(); } catch { /* ignore */ }
+    };
+
+    const handleCreateStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStudentMsg('');
+        setStudentLoading(true);
+        try {
+            await adminService.createStudent(studentForm);
+            setShowStudentForm(false);
+            setStudentForm({ username: '', password: '', rollOrId: '', phone: '', name: '', semester: 1, course: '', branch: '' });
+            await fetchStudents();
+        } catch (err: unknown) {
+            setStudentMsg((err as any)?.response?.data?.error || 'Failed to create student');
+        } finally { setStudentLoading(false); }
+    };
+
+    const handleCreateFaculty = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setFacultyMsg('');
+        setFacultyLoading(true);
+        try {
+            await adminService.createFaculty(facultyForm);
+            setShowFacultyForm(false);
+            setFacultyForm({ username: '', password: '', rollOrId: '', phone: '', name: '', branch: '' });
+            await fetchFaculty();
+        } catch (err: unknown) {
+            setFacultyMsg((err as any)?.response?.data?.error || 'Failed to create faculty');
+        } finally { setFacultyLoading(false); }
     };
 
     const handleSaveMarks = async () => {
@@ -351,8 +425,8 @@ const AdminDashboardPage: React.FC = () => {
                     {timetable.map(t => (
                         <tr key={t._id}>
                             <td><span className="badge badge-subject">{t.branch}</span></td>
-                            <td><b>{typeof t.courseId === 'object' ? t.courseId.name : String(t.courseId)}</b></td>
-                            <td>{typeof t.facultyId === 'object' ? t.facultyId.name : String(t.facultyId)}</td>
+                            <td><b>{typeof t.courseId === 'object' && t.courseId !== null ? t.courseId.name : String(t.courseId)}</b></td>
+                            <td>{typeof t.facultyId === 'object' && t.facultyId !== null ? t.facultyId.name : String(t.facultyId)}</td>
                             <td>{t.dayOfWeek}</td>
                             <td style={{ fontSize: '0.85rem' }}>{t.startTime} – {t.endTime}</td>
                             <td>{t.room}</td>
@@ -423,7 +497,7 @@ const AdminDashboardPage: React.FC = () => {
                             <td>{c.code}</td>
                             <td><span className="badge badge-subject">{c.branch}</span></td>
                             <td>Sem {c.semester}</td>
-                            <td>{typeof c.facultyId === 'object' ? c.facultyId.name : '—'}</td>
+                            <td>{typeof c.facultyId === 'object' && c.facultyId !== null ? c.facultyId.name : '—'}</td>
                             <td style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button className="btn btn-sm btn-outline" style={{ borderColor: '#FECACA', color: 'var(--danger)', background: '#FEF2F2' }}
                                     onClick={() => handleDeleteCourse(c._id)}><Trash2 size={12} /></button>
@@ -443,7 +517,7 @@ const AdminDashboardPage: React.FC = () => {
             {teacherSchedule.map((g, i) => (
                 <div key={i} style={{ marginBottom: '1.5rem' }}>
                     <div style={{ fontWeight: 600, color: 'var(--primary)', marginBottom: '0.5rem' }}>
-                        {g.faculty.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.85rem' }}>— {g.faculty.department}</span>
+                        {g.faculty.name} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.85rem' }}>— {g.faculty.branch}</span>
                     </div>
                     <div className="timetable-list">
                         {g.entries.map((t: TimetableEntry) => (
@@ -466,7 +540,7 @@ const AdminDashboardPage: React.FC = () => {
         <div className="card">
             <div className="card-header">
                 <span className="card-title">Manage Students</span>
-                <button className="btn btn-primary btn-sm"><UserPlus size={14} /> Add Student</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowStudentForm(true)}><UserPlus size={14} /> Add Student</button>
             </div>
 
             {/* Student Search */}
@@ -521,7 +595,7 @@ const AdminDashboardPage: React.FC = () => {
                         <tr key={s._id}>
                             <td><b>{s.name || s.userId?.username}</b></td>
                             <td>{s.rollNo}</td>
-                            <td><span className="badge badge-subject">{s.branch}</span></td>
+                            <td><span className="badge badge-subject">{typeof s.branch === 'object' && s.branch !== null ? (s.branch as any).name : String(s.branch)}</span></td>
                             <td>{s.semester}</td>
                             <td style={{ display: 'flex', gap: '0.5rem' }}>
                                 {/* Edit marks — admin + superadmin */}
@@ -557,22 +631,20 @@ const AdminDashboardPage: React.FC = () => {
         <div className="card">
             <div className="card-header">
                 <span className="card-title">Manage Faculty</span>
-                <button className="btn btn-primary btn-sm"><UserPlus size={14} /> Add Faculty</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setShowFacultyForm(true)}><UserPlus size={14} /> Add Faculty</button>
             </div>
             <table className="manage-table">
-                <thead><tr><th>Name</th><th>Employee ID</th><th>Department</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Name</th><th>Employee ID</th><th>Branch</th><th>Actions</th></tr></thead>
                 <tbody>
                     {faculty.filter(f => !search || f.name?.toLowerCase().includes(search.toLowerCase())).map((f) => (
                         <tr key={f._id}>
                             <td><b>{f.name || f.userId?.username}</b></td>
                             <td>{f.employeeId}</td>
-                            <td>{f.department}</td>
+                            <td>{f.branch}</td>
                             <td style={{ display: 'flex', gap: '0.5rem' }}>
-                                {/* Delete — superadmin only */}
-                                {isSuperAdmin && (
-                                    <button className="btn btn-sm btn-outline" style={{ borderColor: '#FECACA', color: 'var(--danger)', background: '#FEF2F2' }}
-                                        onClick={() => handleDeleteFaculty(f._id)}><Trash2 size={12} /></button>
-                                )}
+                                {/* Delete — admin and superadmin */}
+                                <button className="btn btn-sm btn-outline" style={{ borderColor: '#FECACA', color: 'var(--danger)', background: '#FEF2F2' }}
+                                    onClick={() => handleDeleteFaculty(f._id)}><Trash2 size={12} /></button>
                             </td>
                         </tr>
                     ))}
@@ -610,8 +682,8 @@ const AdminDashboardPage: React.FC = () => {
 
     return (
         <div className="dashboard-layout">
-            <Sidebar role="admin" activeTab={activeTab} onTabChange={setActiveTab} />
-            <main className="main-content">
+            <Sidebar role="admin" activeTab={activeTab} onTabChange={handleTabChange} />
+            <main className="main-content" style={{ overflowY: 'auto', scrollBehavior: 'smooth' }}>
                 <div className="search-bar-wrap">
                     <div className="search-bar">
                         <Search size={16} color="#94a3b8" />
@@ -624,16 +696,22 @@ const AdminDashboardPage: React.FC = () => {
                         <p>Overview of the Smart College Management System.</p>
                     </div>
                 )}
-                {activeTab === 'dashboard' && renderDashboard()}
-                {activeTab === 'timetable' && renderTimetable()}
-                {activeTab === 'teacherSchedule' && renderTeacherSchedule()}
-                {activeTab === 'branches' && renderBranches()}
-                {activeTab === 'courses' && renderCourses()}
-                {activeTab === 'students' && renderStudents()}
-                {activeTab === 'faculty' && renderFaculty()}
-                {activeTab === 'admins' && isSuperAdmin && renderAdmins()}
-                {activeTab === 'placement' && <AdminPlacementPage />}
-                {activeTab === 'settings' && <SettingsPage />}
+                {!data ? (
+                    <div className="loading"><div className="spinner" /><span>Loading...</span></div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingBottom: '30vh' }}>
+                        <section id="dashboard" className="scroll-section">{renderDashboard()}</section>
+                        <section id="timetable" className="scroll-section">{renderTimetable()}</section>
+                        <section id="teacherSchedule" className="scroll-section">{renderTeacherSchedule()}</section>
+                        <section id="branches" className="scroll-section">{renderBranches()}</section>
+                        <section id="courses" className="scroll-section">{renderCourses()}</section>
+                        <section id="students" className="scroll-section">{renderStudents()}</section>
+                        <section id="faculty" className="scroll-section">{renderFaculty()}</section>
+                        {isSuperAdmin && <section id="admins" className="scroll-section">{renderAdmins()}</section>}
+                        <section id="placement" className="scroll-section"><AdminPlacementPage /></section>
+                        <section id="settings" className="scroll-section"><SettingsPage /></section>
+                    </div>
+                )}
             </main>
 
             {/* Timetable Create/Edit Modal */}
@@ -681,7 +759,7 @@ const AdminDashboardPage: React.FC = () => {
                                 <select className="form-input" value={ttForm.facultyId} onChange={e => setTtForm(f => ({ ...f, facultyId: e.target.value }))} required>
                                     <option value="">Select Faculty</option>
                                     {faculty.map(f => (
-                                        <option key={f._id} value={f._id}>{f.name} — {f.department}</option>
+                                        <option key={f._id} value={f._id}>{f.name} — {f.branch}</option>
                                     ))}
                                 </select>
                             </div>
@@ -748,7 +826,7 @@ const AdminDashboardPage: React.FC = () => {
                                 <select className="form-input" value={courseForm.facultyId} onChange={e => setCourseForm(f => ({ ...f, facultyId: e.target.value }))} required>
                                     <option value="">Select Faculty</option>
                                     {faculty.map(f => (
-                                        <option key={f._id} value={f._id}>{f.name} — {f.department}</option>
+                                        <option key={f._id} value={f._id}>{f.name} — {f.branch}</option>
                                     ))}
                                 </select>
                             </div>
@@ -870,6 +948,73 @@ const AdminDashboardPage: React.FC = () => {
                             <button type="submit" className="btn btn-primary btn-full">
                                 Update All Students
                             </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* Modals from Add Buttons */}
+            {showStudentForm && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: 450, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0 }}>Add Student</h3>
+                            <button onClick={() => setShowStudentForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {studentMsg && <p style={{ color: studentMsg.includes('!') ? '#16A34A' : '#DC2626', marginBottom: '1rem', fontSize: '0.85rem' }}>{studentMsg}</p>}
+                        <form onSubmit={handleCreateStudent} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <input className="form-input" placeholder="Username" value={studentForm.username} onChange={e => setStudentForm({ ...studentForm, username: e.target.value })} required />
+                            <input className="form-input" placeholder="Password" value={studentForm.password} onChange={e => setStudentForm({ ...studentForm, password: e.target.value })} required />
+                            <input className="form-input" placeholder="Roll Number" value={studentForm.rollOrId} onChange={e => setStudentForm({ ...studentForm, rollOrId: e.target.value })} required />
+                            <input className="form-input" placeholder="Full Name" value={studentForm.name} onChange={e => setStudentForm({ ...studentForm, name: e.target.value })} required />
+                            <input className="form-input" placeholder="Phone (optional)" value={studentForm.phone} onChange={e => setStudentForm({ ...studentForm, phone: e.target.value })} />
+
+                            <select className="form-input" value={studentForm.course} onChange={e => {
+                                const c = e.target.value;
+                                setStudentForm({ ...studentForm, course: c, branch: '' });
+                                loadBranchesForCourse(c, setStudentBranchOptions);
+                            }} required>
+                                <option value="">Select Course</option>
+                                {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+
+                            <select className="form-input" value={studentForm.branch} onChange={e => setStudentForm({ ...studentForm, branch: e.target.value })} disabled={!studentForm.course || studentBranchOptions.length === 0} required>
+                                <option value="">{studentBranchOptions.length === 0 ? 'Select a Course first' : 'Select Branch'}</option>
+                                {studentBranchOptions.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                            </select>
+
+                            <input type="number" className="form-input" placeholder="Semester (e.g. 1)" value={studentForm.semester} min={1} max={8} onChange={e => setStudentForm({ ...studentForm, semester: Number(e.target.value) })} required />
+                            <button type="submit" className="btn btn-primary btn-full" disabled={studentLoading}>{studentLoading ? 'Creating...' : 'Create Student'}</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {showFacultyForm && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', width: '100%', maxWidth: 450, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0 }}>Add Faculty</h3>
+                            <button onClick={() => setShowFacultyForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+                        </div>
+                        {facultyMsg && <p style={{ color: facultyMsg.includes('!') ? '#16A34A' : '#DC2626', marginBottom: '1rem', fontSize: '0.85rem' }}>{facultyMsg}</p>}
+                        <form onSubmit={handleCreateFaculty} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <input className="form-input" placeholder="Username" value={facultyForm.username} onChange={e => setFacultyForm({ ...facultyForm, username: e.target.value })} required />
+                            <input className="form-input" placeholder="Password" value={facultyForm.password} onChange={e => setFacultyForm({ ...facultyForm, password: e.target.value })} required />
+                            <input className="form-input" placeholder="Employee ID" value={facultyForm.rollOrId} onChange={e => setFacultyForm({ ...facultyForm, rollOrId: e.target.value })} required />
+                            <input className="form-input" placeholder="Full Name" value={facultyForm.name} onChange={e => setFacultyForm({ ...facultyForm, name: e.target.value })} required />
+                            <input className="form-input" placeholder="Phone (optional)" value={facultyForm.phone} onChange={e => setFacultyForm({ ...facultyForm, phone: e.target.value })} />
+
+                            <select className="form-input" value={facultyForm.branch} onChange={e => setFacultyForm({ ...facultyForm, branch: e.target.value })} required>
+                                <option value="">Select Branch</option>
+                                {branchDocs.map((b: any) => <option key={b._id} value={b.name}>{b.name}</option>)}
+                            </select>
+                            {branchDocs.length === 0 && (
+                                <p style={{ color: '#F59E0B', fontSize: '0.82rem', marginTop: '0.3rem' }}>
+                                    ⚠ No branches configured. Add branches first.
+                                </p>
+                            )}
+
+                            <button type="submit" className="btn btn-primary btn-full" disabled={facultyLoading}>{facultyLoading ? 'Creating...' : 'Create Faculty'}</button>
                         </form>
                     </div>
                 </div>

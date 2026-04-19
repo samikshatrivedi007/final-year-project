@@ -227,7 +227,7 @@ const SettingsPage: React.FC = () => {
                             <div style={grid}>
                                 <Row label="Full Name" value={profile.name} />
                                 <Row label="Employee ID" value={profile.employeeId} />
-                                <Row label="Department" value={profile.department} />
+                                <Row label="Branch" value={profile.branch} />
                             </div>
                         );
                     }

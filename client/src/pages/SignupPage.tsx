@@ -20,26 +20,40 @@ const SignupPage: React.FC = () => {
     const [form, setForm] = useState({
         username: '', password: '', confirmPassword: '',
         rollOrId: '', phone: '', name: '',
-        course: '', branch: '', semester: 1, department: '',
+        course: '', branch: '', semester: 1,
     });
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchLoading, setBranchLoading] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Load branches dynamically when course is selected (students only)
+    // Load branches dynamically when course is selected (students)
+    // OR load all branches for faculty
     useEffect(() => {
-        if (role !== 'student' || !form.course) {
+        if (role === 'student' && !form.course) {
             setBranches([]);
             setForm(f => ({ ...f, branch: '' }));
             return;
         }
-        setBranchLoading(true);
-        authService.getBranches(form.course)
-            .then(data => setBranches(data))
-            .catch(() => setBranches([]))
-            .finally(() => setBranchLoading(false));
+        if (role === 'student') {
+            setBranchLoading(true);
+            authService.getBranches(form.course)
+                .then(data => setBranches(data))
+                .catch(() => setBranches([]))
+                .finally(() => setBranchLoading(false));
+        }
     }, [form.course, role]);
+
+    // Faculty: load all branches (no course filter)
+    useEffect(() => {
+        if (role === 'faculty') {
+            setBranchLoading(true);
+            authService.getBranches()
+                .then(data => setBranches(data))
+                .catch(() => setBranches([]))
+                .finally(() => setBranchLoading(false));
+        }
+    }, [role]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +68,9 @@ const SignupPage: React.FC = () => {
             if (!form.course) { setError('Course (degree) is required'); return; }
             if (!form.branch) { setError('Branch is required. Please select a course first.'); return; }
         }
+        if (role === 'faculty') {
+            if (!form.branch) { setError('Branch is required.'); return; }
+        }
 
         setLoading(true);
         try {
@@ -65,7 +82,7 @@ const SignupPage: React.FC = () => {
                 role,
                 name: form.name,
                 ...(role === 'student' && { course: form.course, branch: form.branch, semester: form.semester }),
-                ...(role === 'faculty' && { department: form.department }),
+                ...(role === 'faculty' && { branch: form.branch }),
             });
             navigate(`/login/${role}`);
         } catch (err: unknown) {
@@ -124,9 +141,17 @@ const SignupPage: React.FC = () => {
 
                     {role === 'faculty' && (
                         <div className="form-group">
-                            <label>Department</label>
-                            <input className="form-input" placeholder="e.g. Computer Science" value={form.department}
-                                onChange={e => setForm(f => ({ ...f, department: e.target.value }))} />
+                            <label>Branch <span style={{ color: 'red' }}>*</span></label>
+                            <select className="form-input" value={form.branch}
+                                onChange={e => setForm(f => ({ ...f, branch: e.target.value }))} required>
+                                <option value="">{branchLoading ? 'Loading branches...' : 'Select Branch'}</option>
+                                {branches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                            </select>
+                            {branches.length === 0 && !branchLoading && (
+                                <p style={{ color: '#F59E0B', fontSize: '0.82rem', marginTop: '0.3rem' }}>
+                                    ⚠ No branches configured. Ask admin to add branches.
+                                </p>
+                            )}
                         </div>
                     )}
 
@@ -151,7 +176,7 @@ const SignupPage: React.FC = () => {
                                     <option value="">
                                         {!form.course ? 'Select a Course first' : branchLoading ? 'Loading branches...' : branches.length === 0 ? 'No branches available — contact admin' : 'Select Branch'}
                                     </option>
-                                    {branches.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
+                                    {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                                 </select>
                                 {form.course && branches.length === 0 && !branchLoading && (
                                     <p style={{ color: '#F59E0B', fontSize: '0.82rem', marginTop: '0.3rem' }}>

@@ -1,6 +1,6 @@
 export type UserProfile =
     | { role: 'student'; name: string; rollNo: string; course: string; branch: string; semester: number }
-    | { role: 'faculty'; name: string; employeeId: string; department: string }
+    | { role: 'faculty'; name: string; employeeId: string; branch: string }
     | { role: 'admin' | 'superadmin' }
     | null;
 
@@ -41,7 +41,7 @@ export interface Assignment {
 }
 
 export interface StudentDashboardData {
-    student: { name: string; rollNo: string; semester: number; branch: string };
+    student: { name: string; rollNo: string; semester: number; branch: string; course: string };
     timetable: TimetableEntry[];
     pendingAssignments: Assignment[];
     attendanceRate: number;
@@ -49,7 +49,7 @@ export interface StudentDashboardData {
 }
 
 export interface FacultyDashboardData {
-    faculty: { name: string; employeeId: string; department: string };
+    faculty: { name: string; employeeId: string; branch: string };
     schedule: TimetableEntry[];
     assignments: Assignment[];
     totalSubmissions: number;

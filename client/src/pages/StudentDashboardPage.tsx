@@ -41,7 +41,7 @@ interface Assignment {
 }
 
 interface DashboardData {
-    student: { name: string; rollNo: string; semester: number; branch: string };
+    student: { name: string; rollNo: string; semester: number; branch: string; course: string };
     timetable: TimetableEntry[];
     pendingAssignments: Assignment[];
     completedAssignments: Assignment[];
@@ -79,6 +79,30 @@ const StudentDashboardPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
 
+    useEffect(() => {
+        if (loading) return;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    setActiveTab(entry.target.id);
+                }
+            });
+        }, { rootMargin: '-20% 0px -70% 0px' });
+
+        const sectionIds = ['dashboard', 'timetable', 'assignments', 'attendance', 'placement', 'settings'];
+        sectionIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [loading]);
+
+    const handleTabChange = (key: string) => {
+        setActiveTab(key);
+        document.getElementById(key)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     // Submit modal state
     const [submitModal, setSubmitModal] = useState<Assignment | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -103,7 +127,7 @@ const StudentDashboardPage: React.FC = () => {
 
     // Real-time socket: join student's branch room
     const branch = data?.student?.branch;
-    useSocket(branch ? `branch:${branch}` : null, {
+    useSocket(branch && data?.student?.course ? `branch:${data.student.course}:${branch}` : null, {
         'attendance:updated': () => fetchDashboard(),
         'marks:updated': () => fetchDashboard(),
         'class:live': () => fetchDashboard(),
@@ -365,8 +389,8 @@ const StudentDashboardPage: React.FC = () => {
 
     return (
         <div className="dashboard-layout">
-            <Sidebar role="student" activeTab={activeTab} onTabChange={setActiveTab} />
-            <main className="main-content">
+            <Sidebar role="student" activeTab={activeTab} onTabChange={handleTabChange} />
+            <main className="main-content" style={{ overflowY: 'auto', scrollBehavior: 'smooth' }}>
                 <div className="search-bar-wrap">
                     <div className="search-bar">
                         <Search size={16} color="#94a3b8" />
@@ -383,12 +407,26 @@ const StudentDashboardPage: React.FC = () => {
                     <div className="loading"><div className="spinner" /><span>Loading...</span></div>
                 ) : (
                     <>
-                        {activeTab === 'dashboard' && renderDashboard()}
-                        {activeTab === 'timetable' && renderTimetable()}
-                        {activeTab === 'assignments' && renderAssignments()}
-                        {activeTab === 'attendance' && <AttendancePage />}
-                        {activeTab === 'placement' && <PlacementPage />}
-                        {activeTab === 'settings' && <SettingsPage />}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4rem', paddingBottom: '30vh' }}>
+                            <section id="dashboard" className="scroll-section">
+                                {renderDashboard()}
+                            </section>
+                            <section id="timetable" className="scroll-section">
+                                {renderTimetable()}
+                            </section>
+                            <section id="assignments" className="scroll-section">
+                                {renderAssignments()}
+                            </section>
+                            <section id="attendance" className="scroll-section">
+                                <AttendancePage />
+                            </section>
+                            <section id="placement" className="scroll-section">
+                                <PlacementPage />
+                            </section>
+                            <section id="settings" className="scroll-section">
+                                <SettingsPage />
+                            </section>
+                        </div>
                     </>
                 )}
             </main>

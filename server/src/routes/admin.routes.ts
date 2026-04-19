@@ -54,14 +54,14 @@ router.post('/students', authorize('admin', 'superadmin'), createStudent);
 router.patch('/students/marks/bulk', authorize('admin', 'superadmin'), bulkUpdateMarks);
 router.get('/students/:studentId/marks', authorize('admin', 'superadmin'), getStudentMarks);
 router.put('/students/:id', authorize('admin', 'superadmin'), updateStudent);
-router.patch('/students/:id/marks', authorize('admin', 'superadmin'), updateStudentMarks);
+router.patch('/students/:studentId/marks', authorize('admin', 'superadmin'), updateStudentMarks);
 router.delete('/students/:id', authorize('superadmin'), deleteStudent);
 
 // ── Faculty ───────────────────────────────────────────────────────────────────
 router.get('/faculty', authorize('admin', 'superadmin'), getFacultyList);
 router.post('/faculty', authorize('admin', 'superadmin'), createFaculty);
 router.put('/faculty/:id', authorize('admin', 'superadmin'), updateFaculty);
-router.delete('/faculty/:id', authorize('superadmin'), deleteFaculty);
+router.delete('/faculty/:id', authorize('admin', 'superadmin'), deleteFaculty);
 
 // ── Admins (superadmin only) ──────────────────────────────────────────────────
 router.get('/admins', authorize('superadmin'), getAdmins);

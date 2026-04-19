@@ -54,7 +54,7 @@ interface Assignment {
 }
 
 interface FacultyDashData {
-    faculty: { name: string; employeeId: string; department: string };
+    faculty: { name: string; employeeId: string; branch: string };
     schedule: TimetableEntry[];
     assignments: Assignment[];
     totalSubmissions: number;

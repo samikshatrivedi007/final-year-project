@@ -8,7 +8,7 @@ export interface IStudent extends Document {
     name: string;
     rollNo: string;
     course: CourseDegree;
-    branch: string;
+    branch: mongoose.Types.ObjectId;
     semester: number;
     courses: mongoose.Types.ObjectId[];
 }
@@ -19,7 +19,7 @@ const studentSchema = new Schema<IStudent>(
         name: { type: String, required: true },
         rollNo: { type: String, required: true, unique: true, trim: true },
         course: { type: String, enum: ['BTech', 'MTech', 'BPharma'], required: true },
-        branch: { type: String, required: true, trim: true },
+        branch: { type: Schema.Types.ObjectId, ref: 'Branch', required: true },
         semester: { type: Number, required: true, default: 1 },
         courses: [{ type: Schema.Types.ObjectId, ref: 'Course' }],
     },

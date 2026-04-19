@@ -14,7 +14,7 @@ export const getTimetable = async (req: AuthRequest, res: Response): Promise<voi
         if (branch && branch !== 'all') filter.branch = branch as string;
         const entries = await Timetable.find(filter)
             .populate('courseId', 'name code branch')
-            .populate('facultyId', 'name department')
+            .populate('facultyId', 'name branch')
             .sort('course branch dayOfWeek startTime');
         res.json(entries);
     } catch (error) {
@@ -75,15 +75,16 @@ export const getTeacherSchedule = async (req: AuthRequest, res: Response): Promi
         if (facultyId) filter.facultyId = facultyId;
         const schedule = await Timetable.find(filter)
             .populate('courseId', 'name code branch')
-            .populate('facultyId', 'name department')
+            .populate('facultyId', 'name branch')
             .sort('facultyId dayOfWeek startTime');
         // Group by faculty
-        const grouped: Record<string, { faculty: { name: string; department: string }; entries: unknown[] }> = {};
+        const grouped: Record<string, { faculty: { name: string; branch: string }; entries: unknown[] }> = {};
         for (const entry of schedule) {
-            const fac = entry.facultyId as unknown as { _id: string; name: string; department: string };
+            const fac = entry.facultyId as unknown as { _id: string; name: string; branch: string };
+            if (!fac) continue; // Skip entries with deleted faculty
             const key = fac._id.toString();
             if (!grouped[key]) {
-                grouped[key] = { faculty: { name: fac.name, department: fac.department }, entries: [] };
+                grouped[key] = { faculty: { name: fac.name, branch: fac.branch }, entries: [] };
             }
             grouped[key].entries.push(entry);
         }

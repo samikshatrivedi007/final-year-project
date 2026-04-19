@@ -17,4 +17,6 @@ const applicationSchema = new Schema<IApplication>(
     { timestamps: true }
 );
 
+applicationSchema.index({ studentId: 1, opportunityId: 1 }, { unique: true });
+
 export const Application = mongoose.model<IApplication>('Application', applicationSchema);
