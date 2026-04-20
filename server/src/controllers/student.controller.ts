@@ -145,7 +145,7 @@ export const submitAssignment = async (req: AuthRequest, res: Response): Promise
         if (!assignment) { res.status(404).json({ error: 'Assignment not found' }); return; }
 
         // Verify assignment belongs to student's course+branch
-        if (assignment.course !== student.course || assignment.branch !== student.branch) {
+        if (assignment.course.toString() !== student.course.toString() || assignment.branch.toString() !== student.branch.toString()) {
             res.status(403).json({ error: 'This assignment does not belong to your course/branch' });
             return;
         }
