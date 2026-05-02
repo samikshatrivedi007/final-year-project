@@ -131,6 +131,7 @@ const StudentDashboardPage: React.FC = () => {
         'attendance:updated': () => fetchDashboard(),
         'marks:updated': () => fetchDashboard(),
         'class:live': () => fetchDashboard(),
+        'timetable:updated': () => fetchDashboard(), // ← re-fetch when faculty goes live
         'assignment:created': () => fetchDashboard(),
     });
 
@@ -148,14 +149,12 @@ const StudentDashboardPage: React.FC = () => {
             setSubmitMsg('Please upload a file first');
             return;
         }
-
-        setUploadLoading(true);
         setSubmitMsg('');
 
         try {
             let fileUrl = submitModal.mySubmission?.fileUrl || '';
 
-            // Only upload if a new file was chosen
+            // Only set uploadLoading when actually uploading a new file
             if (selectedFile) {
                 setUploadLoading(true);
                 fileUrl = await studentService.uploadFile(selectedFile);
@@ -164,16 +163,16 @@ const StudentDashboardPage: React.FC = () => {
 
             setSubmitLoading(true);
             await studentService.submitAssignment(submitModal._id, fileUrl);
+            setSubmitLoading(false); // reset before closing modal
+
             setSubmitModal(null);
             setSelectedFile(null);
             setFileName('');
             await fetchDashboard();
         } catch (err: unknown) {
             setUploadLoading(false);
-            setSubmitMsg((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Submission failed');
-        } finally {
             setSubmitLoading(false);
-            setUploadLoading(false);
+            setSubmitMsg((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Submission failed');
         }
     };
 

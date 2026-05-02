@@ -86,7 +86,11 @@ const FacultyDashboardPage: React.FC = () => {
 
     // Review modal
     const [reviewModal, setReviewModal] = useState<{ assignmentId: string; submission: Submission } | null>(null);
-    const [reviewForm, setReviewForm] = useState({ grade: '', feedback: '' });
+    // Bug 9: per-submission grade/feedback map to prevent bleed-over between students
+    const [reviewForms, setReviewForms] = useState<Record<string, { grade: string; feedback: string }>>({});
+    const getReviewForm = (subId: string) => reviewForms[subId] || { grade: '', feedback: '' };
+    const setSubForm = (subId: string, patch: Partial<{ grade: string; feedback: string }>) =>
+        setReviewForms(f => ({ ...f, [subId]: { ...getReviewForm(subId), ...patch } }));
     const [reviewLoading, setReviewLoading] = useState(false);
     const [reviewMsg, setReviewMsg] = useState('');
     const [reviewSubmissions, setReviewSubmissions] = useState<Submission[]>([]);
@@ -108,11 +112,12 @@ const FacultyDashboardPage: React.FC = () => {
         finally { setLoading(false); }
     }, []);
 
-    const fetchCourses = async () => {
+    // Bug 6: wrap fetchCourses in useCallback so it's stable across renders
+    const fetchCourses = useCallback(async () => {
         try { const d = await facultyService.getCourses(); setCourses(d); } catch { /* ignore */ }
-    };
+    }, []);
 
-    useEffect(() => { fetchDashboard(); fetchCourses(); }, [fetchDashboard]);
+    useEffect(() => { fetchDashboard(); fetchCourses(); }, [fetchDashboard, fetchCourses]);
 
     // Real-time socket: join faculty room
     useSocket('faculty', {
@@ -148,15 +153,16 @@ const FacultyDashboardPage: React.FC = () => {
         } catch { /* ignore */ }
     };
 
-    const handleGrade = async (targetStudentId: string) => {
+    const handleGrade = async (sub: Submission) => {
         if (!reviewModal) return;
-        if (!reviewForm.grade) { setReviewMsg('Grade is required'); return; }
+        const form = getReviewForm(sub._id);
+        if (!form.grade) { setReviewMsg('Grade is required'); return; }
         setReviewLoading(true);
         try {
             await facultyService.gradeSubmission(reviewModal.assignmentId, {
-                studentId: targetStudentId,
-                grade: Number(reviewForm.grade),
-                feedback: reviewForm.feedback,
+                studentId: sub.studentId,
+                grade: Number(form.grade),
+                feedback: form.feedback,
             });
             setReviewMsg('');
             // Refresh submissions
@@ -171,7 +177,8 @@ const FacultyDashboardPage: React.FC = () => {
     };
 
     const openAttendanceModal = async (entry: TimetableEntry) => {
-        const branch = entry.courseId.branch || '';
+        // Bug 7: entry.branch is the direct timetable field (always set); courseId.branch may not be populated
+        const branch = entry.branch || entry.courseId.branch || '';
         if (!branch) { alert('No branch info on this class'); return; }
         try {
             const list = await facultyService.getStudentsByCourseAndBranch(entry.course, branch);
@@ -251,7 +258,7 @@ const FacultyDashboardPage: React.FC = () => {
                                     </div>
                                     <div className="timetable-subject">
                                         <div className="subject-name">{t.courseId.name}</div>
-                                        <div className="subject-meta">Lecture:-{i + 1} · {t.room}</div>
+                                        <div className="subject-meta">Lecture {t.lectureNumber} · {t.room}</div>
                                     </div>
                                     {(() => {
                                         const status = getClassStatus(t.dayOfWeek, t.startTime, t.endTime);
@@ -322,7 +329,7 @@ const FacultyDashboardPage: React.FC = () => {
                                             <div className="timetable-subject">
                                                 <div className="subject-name">{t.courseId.name}</div>
                                                 <div className="subject-meta">
-                                                    {t.dayOfWeek} · Lecture {i + 1} · {t.room}
+                                                    {t.dayOfWeek} · Lecture {t.lectureNumber} · {t.room}
                                                     <span style={{ marginLeft: '0.75rem', fontWeight: 600, color: statusColor, fontSize: '0.75rem' }}>• {statusText}</span>
                                                 </div>
                                             </div>
@@ -532,14 +539,14 @@ const FacultyDashboardPage: React.FC = () => {
                                         {reviewMsg && <p style={{ color: '#DC2626', fontSize: '0.85rem', marginBottom: '0.5rem' }}>{reviewMsg}</p>}
                                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                                             <input type="number" className="form-input" placeholder="Marks (0-100)" min={0} max={100}
-                                                style={{ width: 140 }} value={reviewForm.grade}
-                                                onChange={e => setReviewForm(f => ({ ...f, grade: e.target.value }))} />
+                                                style={{ width: 140 }} value={getReviewForm(sub._id).grade}
+                                                onChange={e => setSubForm(sub._id, { grade: e.target.value })} />
                                             <input className="form-input" placeholder="Remarks (optional)"
-                                                style={{ flex: 1 }} value={reviewForm.feedback}
-                                                onChange={e => setReviewForm(f => ({ ...f, feedback: e.target.value }))} />
+                                                style={{ flex: 1 }} value={getReviewForm(sub._id).feedback}
+                                                onChange={e => setSubForm(sub._id, { feedback: e.target.value })} />
                                             <button className="btn btn-primary btn-sm" disabled={reviewLoading}
                                                 onClick={async () => {
-                                                    await handleGrade(sub.studentId);
+                                                    await handleGrade(sub);
                                                 }}>
                                                 {reviewLoading ? '...' : 'Final Review'}
                                             </button>

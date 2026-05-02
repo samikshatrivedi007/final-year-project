@@ -40,9 +40,10 @@ export const getClassStatus = (dayOfWeek: string, startTimeStr: string, endTimeS
     const dayIndex = days.indexOf(dayOfWeek);
     const todayIndex = now.getDay();
 
-    if (dayIndex > todayIndex) return 'upcoming';
-    if (dayIndex < todayIndex) return 'completed';
+    // Timetable is weekly/recurring — if not today, treat as upcoming (not completed)
+    if (dayIndex !== todayIndex) return 'upcoming';
 
+    // Same day — check time window
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const startMins = timeToMinutes(startTimeStr);
     const endMins = timeToMinutes(endTimeStr);

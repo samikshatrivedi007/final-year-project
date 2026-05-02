@@ -109,13 +109,18 @@ export const toggleLiveClass = async (req: AuthRequest, res: Response): Promise<
         await timetable.save();
 
         const room = `branch:${timetable.course}:${timetable.branch}`;
-        emitTo(room, 'class:live', {
+        const livePayload = {
             timetableId: id,
             courseId: timetable.courseId,
             isLive: timetable.isLive,
             course: timetable.course,
             branch: timetable.branch,
-        });
+        };
+
+        // Notify all portals about the timetable state change
+        emitTo(['admin', 'faculty', room], 'timetable:updated', livePayload);
+        // Keep legacy event for safety (student portal also listens to this)
+        emitTo(room, 'class:live', livePayload);
 
         res.json({ isLive: timetable.isLive });
     } catch (error) {

@@ -52,11 +52,13 @@ const AdminDashboardPage: React.FC = () => {
     const isSuperAdmin = state.user?.role === 'superadmin';
     const [activeTab, setActiveTab] = useState('dashboard');
     const [data, setData] = useState<AdminDashData | null>(null);
+    const [loading, setLoading] = useState(true); // Bug 12: track first-load to guard IntersectionObserver
     const [search, setSearch] = useState('');
 
     const scrollingRef = React.useRef(false);
 
     useEffect(() => {
+        if (loading) return; // Bug 12: sections only exist in DOM after data loads
         const observer = new IntersectionObserver((entries) => {
             if (scrollingRef.current) return; // skip during programmatic scroll
             entries.forEach(entry => {
@@ -73,7 +75,7 @@ const AdminDashboardPage: React.FC = () => {
         });
 
         return () => observer.disconnect();
-    }, [isSuperAdmin]);
+    }, [isSuperAdmin, loading]);
 
     const handleTabChange = (key: string) => {
         setActiveTab(key);
@@ -87,7 +89,7 @@ const AdminDashboardPage: React.FC = () => {
     const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
     const [timetableBranch, setTimetableBranch] = useState('all');
     const [showTimetableForm, setShowTimetableForm] = useState(false);
-    const [ttForm, setTtForm] = useState({ courseId: '', facultyId: '', branch: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 });
+    const [ttForm, setTtForm] = useState({ courseId: '', facultyId: '', branch: '', course: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 }); // Bug 5: added course field
     const [ttMsg, setTtMsg] = useState('');
     const [ttLoading, setTtLoading] = useState(false);
     const [editEntry, setEditEntry] = useState<TimetableEntry | null>(null);
@@ -153,9 +155,14 @@ const AdminDashboardPage: React.FC = () => {
 
     const fetchDashboard = useCallback(async () => {
         try { const d = await adminService.getDashboard(); setData(d); } catch { /* ignore */ }
+        finally { setLoading(false); } // Bug 12: mark first load complete
     }, []);
     const fetchTimetable = useCallback(async () => {
-        try { const d = await adminService.getTimetable(timetableBranchRef.current); setTimetable(d); } catch { /* ignore */ }
+        try {
+            const branchVal = timetableBranchRef.current;
+            const d = await adminService.getTimetable(undefined, branchVal === 'all' ? undefined : branchVal);
+            setTimetable(d);
+        } catch { /* ignore */ }
     }, []);
     const fetchTeacherSchedule = useCallback(async () => {
         try { const d = await adminService.getTeacherSchedule(); setTeacherSchedule(d); } catch { /* ignore */ }
@@ -258,8 +265,9 @@ const AdminDashboardPage: React.FC = () => {
             }
             setShowTimetableForm(false);
             setEditEntry(null);
-            setTtForm({ courseId: '', facultyId: '', branch: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 });
+            setTtForm({ courseId: '', facultyId: '', branch: '', course: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 });
             await fetchTimetable();
+            await fetchTeacherSchedule(); // ← refresh teacher schedule after create/update
         } catch (err: unknown) {
             setTtMsg((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed');
         } finally { setTtLoading(false); }
@@ -267,7 +275,11 @@ const AdminDashboardPage: React.FC = () => {
 
     const handleDeleteTimetable = async (id: string) => {
         if (!confirm('Delete this timetable entry?')) return;
-        try { await adminService.deleteTimetableEntry(id); await fetchTimetable(); } catch { /* ignore */ }
+        try {
+            await adminService.deleteTimetableEntry(id);
+            await fetchTimetable();
+            await fetchTeacherSchedule(); // ← refresh teacher schedule after delete
+        } catch { /* ignore */ }
     };
 
     const handleCreateCourse = async (e: React.FormEvent) => {
@@ -407,7 +419,7 @@ const AdminDashboardPage: React.FC = () => {
             <div className="card-header">
                 <span className="card-title">Timetable Management</span>
                 <button className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                    onClick={() => { setEditEntry(null); setTtForm({ courseId: '', facultyId: '', branch: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 }); setTtBranchOptions([]); setShowTimetableForm(true); }}>
+                    onClick={() => { setEditEntry(null); setTtForm({ courseId: '', facultyId: '', branch: '', course: '', dayOfWeek: '', startTime: '', endTime: '', room: '', lectureNumber: 1 }); setTtBranchOptions([]); setShowTimetableForm(true); }}>
                     <Plus size={14} /> Add Entry
                 </button>
             </div>
@@ -726,10 +738,10 @@ const AdminDashboardPage: React.FC = () => {
                         <form onSubmit={handleCreateOrUpdateTimetable} className="auth-form">
                             <div className="form-group">
                                 <label>Course (Degree) <span style={{ color: 'red' }}>*</span></label>
-                                <select className="form-input" value={(ttForm as unknown as { course: string }).course || ''}
+                                <select className="form-input" value={ttForm.course}
                                     onChange={e => {
                                         const c = e.target.value;
-                                        setTtForm((f: typeof ttForm) => ({ ...f, course: c, branch: '' }));
+                                        setTtForm(f => ({ ...f, course: c, branch: '' }));
                                         loadBranchesForCourse(c, setTtBranchOptions);
                                     }} required>
                                     <option value="">Select Course (Degree)</option>
@@ -979,7 +991,7 @@ const AdminDashboardPage: React.FC = () => {
 
                             <select className="form-input" value={studentForm.branch} onChange={e => setStudentForm({ ...studentForm, branch: e.target.value })} disabled={!studentForm.course || studentBranchOptions.length === 0} required>
                                 <option value="">{studentBranchOptions.length === 0 ? 'Select a Course first' : 'Select Branch'}</option>
-                                {studentBranchOptions.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                                {studentBranchOptions.map(b => <option key={b._id} value={b.name}>{b.name}</option>)}
                             </select>
 
                             <input type="number" className="form-input" placeholder="Semester (e.g. 1)" value={studentForm.semester} min={1} max={8} onChange={e => setStudentForm({ ...studentForm, semester: Number(e.target.value) })} required />
