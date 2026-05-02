@@ -9,13 +9,19 @@ import { isClassActive } from '../utils/time';
 
 export const getStudentDashboard = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const student = await Student.findOne({ userId: req.user?.id });
+        // FIX: populate branch so we get the name string, not a raw ObjectId
+        const student = await Student.findOne({ userId: req.user?.id }).populate('branch', 'name');
         if (!student) { res.status(404).json({ error: 'Student profile not found' }); return; }
+
+        // FIX: resolve branch to its name string before using in queries
+        const branchName: string = typeof student.branch === 'object' && student.branch !== null
+            ? (student.branch as any).name
+            : String(student.branch);
 
         const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
-        // Filter timetable by BOTH course AND branch
-        const timetable = await Timetable.find({ course: student.course, branch: student.branch, dayOfWeek: today })
+        // FIX: use branchName (string) not student.branch (ObjectId)
+        const timetable = await Timetable.find({ course: student.course, branch: branchName, dayOfWeek: today })
             .populate('courseId', 'name code')
             .populate('facultyId', 'name')
             .sort('startTime');
@@ -28,8 +34,8 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
             }
         }
 
-        // Filter assignments by BOTH course AND branch
-        const allBranchAssignments = await Assignment.find({ course: student.course, branch: student.branch })
+        // FIX: use branchName (string) not student.branch (ObjectId)
+        const allBranchAssignments = await Assignment.find({ course: student.course, branch: branchName })
             .populate('courseId', 'name code')
             .sort('dueDate');
 
@@ -77,7 +83,8 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
         const happeningNow = timetable.find(t => t.isLive) || null;
 
         res.json({
-            student: { name: student.name, rollNo: student.rollNo, course: student.course, branch: student.branch, semester: student.semester },
+            // FIX: send branchName string to frontend, not raw ObjectId
+            student: { name: student.name, rollNo: student.rollNo, course: student.course, branch: branchName, semester: student.semester },
             timetable,
             pendingAssignments,
             completedAssignments,
@@ -92,9 +99,17 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
 
 export const getStudentTimetable = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const student = await Student.findOne({ userId: req.user?.id });
+        // FIX: populate branch
+        const student = await Student.findOne({ userId: req.user?.id }).populate('branch', 'name');
         if (!student) { res.status(404).json({ error: 'Student not found' }); return; }
-        const timetable = await Timetable.find({ course: student.course, branch: student.branch })
+
+        // FIX: resolve to string
+        const branchName: string = typeof student.branch === 'object' && student.branch !== null
+            ? (student.branch as any).name
+            : String(student.branch);
+
+        // FIX: query with branchName
+        const timetable = await Timetable.find({ course: student.course, branch: branchName })
             .populate('courseId', 'name code')
             .populate('facultyId', 'name')
             .sort('dayOfWeek startTime');
@@ -106,9 +121,17 @@ export const getStudentTimetable = async (req: AuthRequest, res: Response): Prom
 
 export const getStudentAssignments = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
-        const student = await Student.findOne({ userId: req.user?.id });
+        // FIX: populate branch
+        const student = await Student.findOne({ userId: req.user?.id }).populate('branch', 'name');
         if (!student) { res.status(404).json({ error: 'Student not found' }); return; }
-        const assignments = await Assignment.find({ course: student.course, branch: student.branch })
+
+        // FIX: resolve to string
+        const branchName: string = typeof student.branch === 'object' && student.branch !== null
+            ? (student.branch as any).name
+            : String(student.branch);
+
+        // FIX: query with branchName
+        const assignments = await Assignment.find({ course: student.course, branch: branchName })
             .populate('courseId', 'name code')
             .sort('dueDate');
 
@@ -138,14 +161,20 @@ export const submitAssignment = async (req: AuthRequest, res: Response): Promise
         const { fileUrl } = req.body;
         if (!fileUrl) { res.status(400).json({ error: 'fileUrl is required' }); return; }
 
-        const student = await Student.findOne({ userId: req.user?.id });
+        // FIX: populate branch so the comparison works
+        const student = await Student.findOne({ userId: req.user?.id }).populate('branch', 'name');
         if (!student) { res.status(404).json({ error: 'Student not found' }); return; }
+
+        // FIX: resolve to string before comparing
+        const branchName: string = typeof student.branch === 'object' && student.branch !== null
+            ? (student.branch as any).name
+            : String(student.branch);
 
         const assignment = await Assignment.findById(id);
         if (!assignment) { res.status(404).json({ error: 'Assignment not found' }); return; }
 
-        // Verify assignment belongs to student's course+branch
-        if (assignment.course !== student.course || assignment.branch !== student.branch) {
+        // FIX: compare against branchName string, not ObjectId
+        if (assignment.course !== student.course || assignment.branch !== branchName) {
             res.status(403).json({ error: 'This assignment does not belong to your course/branch' });
             return;
         }
@@ -161,7 +190,6 @@ export const submitAssignment = async (req: AuthRequest, res: Response): Promise
                 res.status(400).json({ error: 'Submission has already been reviewed and cannot be edited' });
                 return;
             }
-            // Update existing
             existingSub.fileUrl = fileUrl;
             existingSub.submittedAt = new Date();
         } else {
