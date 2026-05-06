@@ -64,7 +64,7 @@ const resolveFileUrl = (fileUrl: string): string => {
     return `${SERVER_BASE}${fileUrl}`;
 };
 
-import { isClassActive } from '../utils/time';
+import { isClassActive, isClassExpired, isAssignmentExpired } from '../utils/time';
 
 const StudentDashboardPage: React.FC = () => {
     const [, setTick] = useState(0);
@@ -209,12 +209,25 @@ const StudentDashboardPage: React.FC = () => {
         );
     };
 
+
+    // ── Derived: filter out expired entries at render time (updates every 30s via tick) ──
+
+    // Today's timetable: hide classes whose end time + 1 min grace has passed
+    const visibleTimetable = (data?.timetable ?? []).filter(
+        t => !isClassExpired(t.dayOfWeek, t.endTime)
+    );
+
+    // Pending assignments: hide assignments whose due date + 1 min grace has passed
+    const visiblePendingAssignments = (data?.pendingAssignments ?? []).filter(
+        a => !isAssignmentExpired(a.dueDate)
+    );
+
     const renderDashboard = () => {
         if (!data) return <div className="loading"><div className="spinner" /><span>Loading...</span></div>;
         return (
             <>
                 <div className="dashboard-grid-main">
-                    {data.happeningNow ? (
+                    {data.happeningNow && !isClassExpired(data.happeningNow.dayOfWeek, data.happeningNow.endTime) ? (
                         <div className="happening-now">
                             <div className="happening-badge">Happening Now</div>
                             <h2>{data.happeningNow.courseId.name}</h2>
@@ -237,7 +250,7 @@ const StudentDashboardPage: React.FC = () => {
                         </div>
                         <div className="card">
                             <div className="card-label">Pending Assignments</div>
-                            <div className="card-value">{data.pendingAssignments?.length || 0}/{data.totalAssignments || 0}</div>
+                            <div className="card-value">{visiblePendingAssignments.length}/{data.totalAssignments || 0}</div>
                             <div className="card-sub">Due soon.</div>
                         </div>
                     </div>
@@ -247,8 +260,8 @@ const StudentDashboardPage: React.FC = () => {
                     <div className="card">
                         <div className="card-header"><span className="card-title">Today's Time Table</span></div>
                         <div className="timetable-list">
-                            {data.timetable.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>No classes today</p>}
-                            {data.timetable.map((t) => (
+                            {visibleTimetable.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>No classes today</p>}
+                            {visibleTimetable.map((t) => (
                                 <div key={t._id} className="timetable-row">
                                     <div className="timetable-time">
                                         {t.startTime.split(':')[0]}:{t.startTime.split(':')[1]?.split(' ')[0]}<br />
@@ -274,7 +287,7 @@ const StudentDashboardPage: React.FC = () => {
                             <span className="view-all" onClick={() => setActiveTab('assignments')} style={{ cursor: 'pointer' }}>view all</span>
                         </div>
                         <div className="assignment-list">
-                            {(data.pendingAssignments || []).slice(0, 4).map((a) => (
+                            {visiblePendingAssignments.slice(0, 4).map((a) => (
                                 <div key={a._id} className="assignment-row">
                                     <div className="assignment-info">
                                         <div className="asgn-name">{a.title}</div>
@@ -286,7 +299,7 @@ const StudentDashboardPage: React.FC = () => {
                                     {getSubmitButton(a)}
                                 </div>
                             ))}
-                            {(!data.pendingAssignments || data.pendingAssignments.length === 0) && (
+                            {visiblePendingAssignments.length === 0 && (
                                 <p style={{ color: 'var(--text-muted)', padding: '0.5rem 0' }}>No pending assignments 🎉</p>
                             )}
                         </div>
@@ -303,7 +316,7 @@ const StudentDashboardPage: React.FC = () => {
             <div className="card">
                 <div className="card-header"><span className="card-title">Full Timetable — {data.student.branch} Branch</span></div>
                 {days.map(day => {
-                    const entries = data.timetable.filter(t => t.dayOfWeek === day);
+                    const entries = visibleTimetable.filter(t => t.dayOfWeek === day);
                     if (entries.length === 0) return null;
                     return (
                         <div key={day} style={{ marginBottom: '1rem' }}>
@@ -327,13 +340,13 @@ const StudentDashboardPage: React.FC = () => {
                         </div>
                     );
                 })}
-                {data.timetable.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>No timetable entries for your branch yet. Contact admin.</p>}
+                {visibleTimetable.length === 0 && <p style={{ color: 'var(--text-muted)', padding: '1rem 0' }}>No timetable entries for your branch yet. Contact admin.</p>}
             </div>
         );
     };
 
     const renderAssignments = () => {
-        const pending = data?.pendingAssignments || [];
+        const pending = visiblePendingAssignments;
         const completed = data?.completedAssignments || [];
         return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

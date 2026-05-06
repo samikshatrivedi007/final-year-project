@@ -52,3 +52,27 @@ export const getClassStatus = (dayOfWeek: string, startTimeStr: string, endTimeS
     if (currentMinutes >= endMins) return 'completed';
     return 'active';
 };
+
+/**
+ * Returns true if the class has ended (endTime + 1 minute grace has passed today).
+ * If the class is not scheduled for today, returns false — it is not "expired", just not today's.
+ */
+export const isClassExpired = (dayOfWeek: string, endTimeStr: string): boolean => {
+    const now = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (days[now.getDay()] !== dayOfWeek) return false; // not today, not expired
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const endMins = timeToMinutes(endTimeStr);
+
+    return currentMinutes > endMins + 1; // 1-minute grace period after end time
+};
+
+/**
+ * Returns true if the assignment due date has fully passed (dueDate + 1 minute grace).
+ */
+export const isAssignmentExpired = (dueDateStr: string): boolean => {
+    const due = new Date(dueDateStr).getTime();
+    const now = Date.now();
+    return now > due + 60 * 1000; // 1 minute grace after due date
+};

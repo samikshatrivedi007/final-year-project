@@ -3,7 +3,7 @@ cd final-year-project
 
 #Dhruv's Code
 
-
+#deploy code
 # Backend
 cd server
 cp .env.example .env   # fill in your MongoDB URL + JWT secret

@@ -7,6 +7,31 @@ import { Attendance } from '../models/Attendance';
 import { Marks } from '../models/Marks';
 import { isClassActive } from '../utils/time';
 
+/** Returns total minutes since midnight from a "HH:MM" (or "HH:MM AM/PM") string */
+const timeToMinutes = (timeStr: string): number => {
+    const [time, period] = timeStr.trim().split(/\s+/);
+    let [hours, minutes] = time.split(':').map(Number);
+    if (period) {
+        if (period.toUpperCase() === 'PM' && hours < 12) hours += 12;
+        if (period.toUpperCase() === 'AM' && hours === 12) hours = 0;
+    }
+    return hours * 60 + minutes;
+};
+
+/** True if the class has ended (endTime + 1 min grace) on today's schedule */
+const isClassExpiredServer = (dayOfWeek: string, endTimeStr: string): boolean => {
+    const now = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    if (days[now.getDay()] !== dayOfWeek) return false;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    return currentMinutes > timeToMinutes(endTimeStr) + 1;
+};
+
+/** True if assignment due date + 1 min grace has passed */
+const isAssignmentExpiredServer = (dueDate: Date | string): boolean => {
+    return Date.now() > new Date(dueDate).getTime() + 60 * 1000;
+};
+
 export const getStudentDashboard = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
         // FIX: populate branch so we get the name string, not a raw ObjectId
@@ -33,6 +58,9 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
                 await Timetable.updateOne({ _id: t._id }, { isLive: false });
             }
         }
+
+        // Filter out classes whose end time + 1 min grace has passed
+        const activeTimetable = timetable.filter(t => !isClassExpiredServer(t.dayOfWeek, t.endTime));
 
         // FIX: use branchName (string) not student.branch (ObjectId)
         const allBranchAssignments = await Assignment.find({ course: student.course, branch: branchName })
@@ -80,13 +108,13 @@ export const getStudentDashboard = async (req: AuthRequest, res: Response): Prom
         const attendanceRate = allAttendance.length > 0
             ? Math.round((presentCount / allAttendance.length) * 100) : 0;
 
-        const happeningNow = timetable.find(t => t.isLive) || null;
+        const happeningNow = activeTimetable.find(t => t.isLive) || null;
 
         res.json({
             // FIX: send branchName string to frontend, not raw ObjectId
             student: { name: student.name, rollNo: student.rollNo, course: student.course, branch: branchName, semester: student.semester },
-            timetable,
-            pendingAssignments,
+            timetable: activeTimetable,
+            pendingAssignments: pendingAssignments.filter(a => !isAssignmentExpiredServer(a.dueDate)),
             completedAssignments,
             totalAssignments: allBranchAssignments.length,
             attendanceRate,
@@ -149,7 +177,7 @@ export const getStudentAssignments = async (req: AuthRequest, res: Response): Pr
                 canEdit: !sub || (!sub.isReviewed && new Date() < new Date(a.dueDate)),
             };
         });
-        res.json(enriched);
+        res.json(enriched.filter(a => !isAssignmentExpiredServer(a.dueDate)));
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch assignments' });
     }
