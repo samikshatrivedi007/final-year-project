@@ -1,17 +1,17 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    allowedHosts: ['scms.clg'],
+    port: 5173,
+    allowedHosts: ["anemic-snowcap-happier.ngrok-free.dev"],
     proxy: {
-      '/api': {
-        target: 'https://final-year-project-2-acp7.onrender.com',
-        changeOrigin: true
-      }
-    }
-  }
-})
+      "/api": {
+        target: process.env.VITE_API_TARGET || "http://localhost:9000",
+        changeOrigin: true,
+      },
+    },
+  },
+});

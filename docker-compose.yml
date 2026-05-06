@@ -1,0 +1,64 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: scms-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: scms
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: scms-server
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mongo
+    environment:
+      PORT: "9000"
+      MONGODB_URI: mongodb://mongo:27017/scms
+      JWT_SECRET: scms-jwt-secret-dev
+      CLIENT_URL: http://localhost:5173
+      ALLOWED_ORIGINS: http://localhost:5173,https://anemic-snowcap-happier.ngrok-free.dev
+    volumes:
+      - uploads:/app/uploads
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: scms-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      - server
+    environment:
+      VITE_API_URL: http://localhost:9000/api
+      VITE_API_TARGET: http://server:9000
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+      - ./client/index.html:/app/index.html
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: scms-ngrok
+    restart: unless-stopped
+    environment:
+      NGROK_AUTHTOKEN: 3DKws3YbZicq0Jp4cPWwFhpds3t_5WxRNGo4hsTK3LUPx5aEB
+    command: http --url=anemic-snowcap-happier.ngrok-free.dev client:5173
+    ports:
+      - "4040:4040"
+    depends_on:
+      - client
+
+volumes:
+  mongo-data:
+  uploads:
