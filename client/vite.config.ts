@@ -9,7 +9,7 @@ export default defineConfig({
     allowedHosts: ['scms.clg'],
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://final-year-project-2-acp7.onrender.com',
         changeOrigin: true
       }
     }
